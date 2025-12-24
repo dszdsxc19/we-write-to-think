@@ -1,11 +1,11 @@
 {
-  "multi-author": 1,
-  "next-js": 2,
-  "feature": 1,
-  "多作者": 1,
-  "功能": 2,
   "markdown": 2,
   "code": 1,
   "features": 1,
-  "代码": 1
+  "代码": 1,
+  "功能": 2,
+  "multi-author": 1,
+  "next-js": 2,
+  "feature": 1,
+  "多作者": 1
 }
