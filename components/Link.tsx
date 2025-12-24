@@ -2,7 +2,10 @@
 import { Link as NextIntlLink } from '@/navigation'
 import { AnchorHTMLAttributes } from 'react'
 
-const CustomLink = ({ href, ...rest }: { href: string } & AnchorHTMLAttributes<HTMLAnchorElement>) => {
+const CustomLink = ({
+  href,
+  ...rest
+}: { href: string } & AnchorHTMLAttributes<HTMLAnchorElement>) => {
   const isInternalLink = href && href.startsWith('/')
   const isAnchorLink = href && href.startsWith('#')
 

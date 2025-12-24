@@ -19,7 +19,9 @@ export const generateStaticParams = async () => {
   })
 }
 
-export default async function TagPage(props: { params: Promise<{ locale: string; tag: string; page: string }> }) {
+export default async function TagPage(props: {
+  params: Promise<{ locale: string; tag: string; page: string }>
+}) {
   const params = await props.params
   const { locale } = params
   const tag = decodeURI(params.tag)

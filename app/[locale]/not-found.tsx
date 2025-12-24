@@ -11,9 +11,7 @@ export default async function NotFound() {
         </h1>
       </div>
       <div className="max-w-md">
-        <p className="mb-4 text-xl leading-normal font-bold md:text-2xl">
-          {t('title')}
-        </p>
+        <p className="mb-4 text-xl leading-normal font-bold md:text-2xl">{t('title')}</p>
         <p className="mb-8">{t('description')}</p>
         <Link
           href="/"
