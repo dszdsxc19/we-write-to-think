@@ -35,6 +35,53 @@ sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.
 - `zsh-syntax-highlighting`：命令语法高亮
 - `zsh-z`：目录快速跳转
 
+**轻量化 Zsh 配置**（推荐，无 Oh My Zsh）
+
+Oh My Zsh 虽然强大但较臃肿。现代轻量化方案：
+
+```bash
+# 安装依赖
+brew install zsh-syntax-highlighting zsh-autosuggestions zoxide starship
+
+# ~/.zshrc - 轻量化配置
+# 命令补全
+autoload -Uz compinit && compinit
+
+# 语法高亮
+source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+
+# 历史建议
+source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+
+# 历史配置
+setopt HIST_FIND_NO_DUPS
+setopt HIST_IGNORE_DUPS
+setopt SHARE_HISTORY
+HISTSIZE=10000
+SAVEHIST=10000
+
+# 目录跳转
+eval "$(zoxide init zsh)"
+
+# 提示符
+eval "$(starship init zsh)"
+
+# 现代命令别名
+alias ls='eza --git --icons'
+alias ll='eza -lah --git --icons'
+alias cat='bat'
+alias grep='rg'
+alias find='fd'
+alias du='duf'
+alias top='btop'
+```
+
+**优势**：
+
+- 启动速度提升 5-10 倍
+- 无冗余插件和主题
+- 完全可控的配置
+
 **Nushell**（AI友好型）
 
 ```nu
@@ -49,6 +96,30 @@ ls | where size > 1mb | sort-by modified
 - 表格化输出，AI极易解析
 
 ### 1.2 终端模拟器
+
+**Ghostty**（强烈推荐，2025年新秀）
+
+```bash
+# 安装（macOS）
+brew install --cask ghostty
+```
+
+**特点**：
+
+- 基于GPU渲染，极低延迟
+- 原生支持分屏、多标签
+- 跨平台一致体验
+- 内置SSH集成
+- 配置简洁，性能优于iTerm2
+
+**对比**：
+| 功能 | iTerm2 | Kitty | Ghostty |
+| -------- | ---- | ------ | ------ |
+| 性能 | 中 | 快 | 最快 |
+| 配置复杂度 | 高 | 中 | 低 |
+| 跨平台 | ❌ | ✅ | ✅ |
+| 分屏 | ✅ | 插件 | ✅ 原生 |
+| 启动速度 | 慢 | 快 | 最快 |
 
 **Warp**（AI原生终端）
 
@@ -504,9 +575,330 @@ pip install gptme
 gps "list all processes"
 ```
 
-## 八、配置与Dotfiles
+## 八、通知系统
 
-### 8.1 Dotfiles管理
+长任务运行时，通知系统让你无需等待，任务完成时自动提醒。
+
+### 8.1 noti（跨平台通知）
+
+```bash
+# 安装
+brew install noti
+```
+
+**功能**：
+
+- 监控进程并在完成时发送通知
+- 支持多种通知渠道（桌面、手机、Slack、Telegram等）
+- 可发送通知到 macOS/Linux/Windows
+
+**使用示例**：
+
+```bash
+# 前置使用
+noti tar -cjf music.tar.bz2 Music/
+
+# 后置使用
+clang foo.c -Wall -lm -o bizz; noti
+
+# 已运行任务（Ctrl+Z 暂停后恢复）
+$ long-running-command
+^Z
+$ fg; noti
+
+# 管道输入
+make test 2>&1 | tail -5 | noti -t "测试结果" -m -
+```
+
+**配置文件** `~/.config/noti/noti.yaml`：
+
+```yaml
+# 默认通知方式
+defaultprovider: terminalnotifier
+
+# macOS 配置
+terminalnotifier:
+  sound: default
+  sender: com.apple.Terminal
+```
+
+### 8.2 terminal-notifier（macOS 原生）
+
+```bash
+# 安装
+brew install terminal-notifier
+```
+
+**使用示例**：
+
+```bash
+# 基本通知
+terminal-notifier -title "构建完成" -message "项目已成功构建"
+
+# 带声音
+terminal-notifier -title "测试失败" -message "3个测试失败" -sound Ping
+
+# 定时通知
+terminal-notifier -title "会议提醒" -message "5分钟后开始" -delay 300
+```
+
+### 8.3 Claude Code 集成
+
+在 `~/.claude/settings.json` 中配置 hooks：
+
+```json
+{
+  "hooks": {
+    "Notification": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "terminal-notifier -title \"🔔 Claude Code\" -message \"Claude 需要你的输入\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "terminal-notifier -title \"✅ Claude Code\" -message \"任务已完成\""
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+### 8.4 对比
+
+| 功能       | noti | terminal-notifier |
+| ---------- | ---- | ----------------- |
+| 跨平台     | ✅   | ❌ 仅macOS        |
+| 进程监控   | ✅   | ❌                |
+| 多渠道     | ✅   | ❌                |
+| 配置复杂度 | 中   | 低                |
+| 推荐场景   | 通用 | macOS专用         |
+
+## 九、macOS 系统工具
+
+### 9.1 系统信息查询
+
+**系统版本信息**
+
+```bash
+# 查看系统版本
+sw_vers
+# ProductName:	macOS
+# ProductVersion:	15.0
+# BuildVersion:	24A348
+
+# 查看详细硬件信息
+system_profiler SPHardwareDataType
+```
+
+**defaults 命令**（修改系统设置）
+
+```bash
+# 显示隐藏文件
+defaults write com.apple.finder AppleShowAllFiles -bool true
+killall Finder
+
+# 显示文件扩展名
+defaults write NSGlobalDomain AppleShowAllExtensions -bool true
+
+# 设置截图保存位置
+defaults write com.apple.screencapture location ~/Downloads/Screenshots
+killall SystemUIServer
+
+# 禁用 Dashboard
+defaults write com.apple.dashboard mcx-disabled -bool true
+
+# 加速 Dock 显示动画
+defaults write com.apple.dock autohide-time-modifier -float 0.4
+killall Dock
+```
+
+**系统状态监控**
+
+```bash
+# 查看所有电源管理设置
+pmset -g
+
+# 查看当前休眠状态
+pmset -g assertions
+
+# 禁用休眠（笔记本充电时）
+sudo pmset -c sleep 0
+```
+
+### 9.2 网络配置
+
+```bash
+# 查看网络状态
+networksetup -listallnetworkservices
+
+# 查看 Wi-Fi 信息
+networksetup -getinfo Wi-Fi
+
+# 刷新 DNS
+sudo dscacheutil -flushcache
+sudo killall -HUP mDNSResponder
+```
+
+### 9.3 Fastfetch（系统信息展示）
+
+```bash
+# 安装
+brew install fastfetch
+
+# 使用
+fastfetch
+```
+
+**替代 neofetch**，特点：
+
+- C++ 编写，性能极高
+- 原生支持 macOS/Linux/Windows
+- 可配置输出 JSON 格式（AI友好）
+- 更少的依赖
+
+**配置文件** `~/.config/fastfetch/config.jsonc`：
+
+```jsonc
+{
+  "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
+  "modules": [
+    "title",
+    "os",
+    "kernel",
+    "uptime",
+    "packages",
+    "shell",
+    "terminal",
+    "cpu",
+    "gpu",
+    "memory",
+    "disk",
+    "localip",
+  ],
+}
+```
+
+## 十、效率增强工具
+
+### 10.1 进度显示
+
+**pv（Pipe Viewer）**
+
+```bash
+# 安装
+brew install pv
+
+# 显示复制进度
+pv sourcefile > destfile
+
+# 显示大文件解压进度
+pv archive.tar.gz | tar xzf -
+```
+
+**progress（Coreutils 进度条）**
+
+```bash
+# 安装
+brew install progress
+
+# 监控正在运行的 cp/mv/dd 等命令
+progress -M
+```
+
+### 10.2 任务管理
+
+**taskwarrior**（命令行任务管理）
+
+```bash
+# 安装
+brew install task
+
+# 添加任务
+task add Fix the bug in login
+
+# 列出任务
+task list
+
+# 完成任务
+task 1 done
+
+# 查看任务统计
+task summary
+```
+
+**timewarrior**（时间跟踪）
+
+```bash
+# 安装
+brew install timewarrior
+
+# 开始跟踪
+timew start
+
+# 停止跟踪
+timew stop
+
+# 查看报表
+timew summary
+```
+
+### 10.3 剪贴板工具
+
+**macOS 原生命令**
+
+```bash
+# 复制到剪贴板
+echo "hello" | pbcopy
+
+# 从剪贴板粘贴
+pbpaste
+
+# 复制文件内容
+pbcopy < file.txt
+
+# 处理剪贴板内容
+pbpaste | rg "pattern"
+```
+
+**clipboard**（跨平台）
+
+```bash
+# 安装
+brew install clipboard
+
+# 使用
+echo "text" | clipboard
+clipboard > file.txt
+```
+
+### 10.4 网络测速
+
+```bash
+# 安装
+brew install speedtest-cli
+
+# 测试网速
+speedtest-cli
+
+# 简化输出
+speedtest-cli --simple
+```
+
+## 十一、配置与Dotfiles
+
+### 11.1 Dotfiles管理
 
 **Chezmoi**（推荐）
 
@@ -524,27 +916,38 @@ chezmoi init
 - 私密数据加密
 - 跨平台支持
 
-### 8.2 自动安装脚本
+### 11.2 自动安装脚本
 
 ```bash
 #!/bin/bash
 # install.sh - macOS开发环境一键安装
 
 # 基础工具
-brew install bat exa fd ripgrep fzf zoxide
+brew install bat eza fd ripgrep fzf zoxide
 brew install btop duf ncdu
 brew install httpie jq jc
 brew install lazygit lazydocker
 brew install atuin
 
-# Shell配置
-curl --proto '=https' --tlsv1.2 -sSf https://setup.atuin.sh | sh
-sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+# 终端和Shell
+brew install --cask ghostty
+brew install starship zsh-syntax-highlighting zsh-autosuggestions
+
+# 通知工具
+brew install noti terminal-notifier
+
+# 系统工具
+brew install fastfetch pv progress speedtest-cli
+brew install task timewarrior
+
+# Shell配置（可选轻量方案）
+# curl --proto '=https' --tlsv1.2 -sSf https://setup.atuin.sh | sh
+# sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
 ```
 
-## 九、完整工具链清单
+## 十二、完整工具链清单
 
-### 9.1 核心必备
+### 12.1 核心必备
 
 ```bash
 # 文件操作
@@ -579,7 +982,7 @@ brew install atuin         # 命令历史
 brew install fnm           # Node.js版本
 ```
 
-### 9.2 可选增强
+### 12.2 可选增强
 
 ```bash
 # 编辑器
@@ -594,16 +997,81 @@ brew install mycli         # MySQL
 # Dotfiles管理
 brew install chezmoi       # 配置管理
 
+# 通知系统
+brew install noti          # 跨平台通知
+brew install terminal-notifier  # macOS通知
+
+# 系统信息
+brew install fastfetch     # 替代 neofetch
+
+# 任务管理
+brew install task          # taskwarrior
+brew install timewarrior   # 时间跟踪
+
+# 进度工具
+brew install pv            # pipe viewer
+brew install progress      # coreutils 进度
+
+# 网络测速
+brew install speedtest-cli # 网络测速
+
 # AI工具
 pip install aider-chat     # AI编码助手
 ```
 
-## 十、配置示例
+## 十三、配置示例
 
-### 10.1 Zsh配置片段
+### 13.1 Zsh配置片段
+
+**轻量化配置**（推荐，不使用 Oh My Zsh）：
 
 ```bash
-# ~/.zshrc
+# ~/.zshrc - 现代轻量化配置
+
+# 命令补全
+autoload -Uz compinit && compinit
+
+# 语法高亮和历史建议
+source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+
+# 历史配置
+setopt HIST_FIND_NO_DUPS HIST_IGNORE_DUPS SHARE_HISTORY
+HISTSIZE=10000 SAVEHIST=10000
+
+# 提示符（starship）
+eval "$(starship init zsh)"
+
+# 目录跳转
+eval "$(zoxide init zsh)"
+
+# Node.js 版本管理
+eval "$(fnm env --use-on-cd)"
+
+# 命令历史
+eval "$(atuin init zsh)"
+
+# 模糊查找
+eval "$(fzf --zsh)"
+
+# 命令别名（现代替代）
+alias cat='bat'
+alias ls='eza --git --icons'
+alias ll='eza -lah --git --icons'
+alias tree='eza --tree'
+alias find='fd'
+alias grep='rg'
+alias du='duf'
+alias top='btop'
+alias df='duf'
+alias git='lazygit'
+alias docker='lazydocker'
+```
+
+**Oh My Zsh 配置**（传统方案）：
+
+```bash
+# ~/.zshrc - Oh My Zsh 配置
 
 # 命令别名（现代替代）
 alias cat='bat'
@@ -628,7 +1096,7 @@ eval "$(fnm env --use-on-cd)"
 eval "$(atuin init zsh)"
 ```
 
-### 10.2 Git配置
+### 13.2 Git配置
 
 ```bash
 # ~/.gitconfig
@@ -650,9 +1118,20 @@ eval "$(atuin init zsh)"
   colorMoved = default
 ```
 
-## 十一、使用技巧
+### 13.3 noti 配置
 
-### 11.1 AI友好的工作流
+```bash
+# ~/.config/noti/noti.yaml
+defaultprovider: terminalnotifier
+
+terminalnotifier:
+  sound: default
+  sender: com.apple.Terminal
+```
+
+## 十四、使用技巧
+
+### 14.1 AI友好的工作流
 
 **结构化输出优先**：
 
@@ -674,7 +1153,22 @@ fd -e js | fzf | bat
 fd -t f | xargs ls -lh | sort -k5 -h | tail -10
 ```
 
-### 11.2 效率提升
+**通知集成**：
+
+```bash
+# 长任务完成后通知
+noti tar -cjf archive.tar.bz2 large_dir/
+
+# 组合使用
+make build 2>&1 | noti -t "构建结果" -m -
+
+# 测试完成后通知
+noti npm test
+
+# 在 Claude Code 中通过 hooks 自动通知
+```
+
+### 14.2 效率提升
 
 **快捷键绑定**（Zsh）：
 
@@ -691,22 +1185,43 @@ fd -t f | xargs ls -lh | sort -k5 -h | tail -10
 autoload -Uz compinit && compinit
 ```
 
-## 十二、学习资源
+## 十五、学习资源
 
-### 12.1 项目地址
+### 15.1 项目地址
+
+**核心工具**：
 
 - **fd**: https://github.com/sharkdp/fd
 - **ripgrep**: https://github.com/BurntSushi/ripgrep
 - **bat**: https://github.com/sharkdp/bat
-- **exa/eza**: https://github.com/eza-community/eza
+- **eza**: https://github.com/eza-community/eza
 - **btop**: https://github.com/aristocratos/btop
 - **lazygit**: https://github.com/jesseduffield/lazygit
 - **atuin**: https://github.com/ellie/atuin
 
-### 12.2 相关阅读
+**终端和Shell**：
+
+- **Ghostty**: https://github.com/mitchellh/ghostty
+- **starship**: https://github.com/starship/starship
+- **zsh-autosuggestions**: https://github.com/zsh-users/zsh-autosuggestions
+- **zsh-syntax-highlighting**: https://github.com/zsh-users/zsh-syntax-highlighting
+
+**通知系统**：
+
+- **noti**: https://github.com/variadico/noti
+- **terminal-notifier**: https://github.com/julienXX/terminal-notifier
+
+**系统工具**：
+
+- **fastfetch**: https://github.com/fastfetch-cli/fastfetch
+- **taskwarrior**: https://github.com/GothenburgBitFactory/taskwarrior
+- **pv**: https://www.ivarch.com/programs/pv.shtml
+
+### 15.2 相关阅读
 
 - **Modern Unix**: https://github.com/ibraheemdev/modern-unix
 - **Awesome CLI**: https://github.com/agarrharr/awesome-cli-apps
+- **terminal-notifier + Claude Code**: https://www.andreagrandi.it/posts/using-terminal-notifier-claude-code-custom-notifications/
 
 ## 总结
 
@@ -727,9 +1242,23 @@ cat → bat, ls → eza, grep → rg, find → fd
 
 第二阶段：增强工具
 top → btop, git → lazygit, docker → lazydocker
+iTerm2 → Ghostty, nvm → fnm, neofetch → fastfetch
 
-第三阶段：AI集成
-atuin历史管理，jc结构化输出，aider编码助手
+第三阶段：AI集成与通知
+atuin历史管理，jc结构化输出，noti通知系统，Claude Code hooks
+
+第四阶段：效率提升
+taskwarrior任务管理，pv进度显示，zoxide智能跳转
+```
+
+**2025年推荐的核心配置**：
+
+```bash
+# 终端：Ghostty（最快）
+# Shell：轻量化 Zsh + starship（无 Oh My Zsh）
+# 通知：noti + terminal-notifier + Claude Code hooks
+# Node.js：fnm（代替 nvm）
+# 系统信息：fastfetch（代替 neofetch）
 ```
 
 记住，工具的目的是提升效率，不是炫耀配置。选择适合自己工作流的工具，持续优化，让AI成为你的加速器。
