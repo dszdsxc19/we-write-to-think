@@ -41,3 +41,4 @@ bun-error.log*
 
 # Contentlayer
 .contentlayer
+app/tag-data.json
