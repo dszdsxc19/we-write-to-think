@@ -12,6 +12,7 @@ import Tag from '@/components/Tag'
 import siteMetadata from '@/data/siteMetadata'
 import ScrollTopAndComment from '@/components/ScrollTopAndComment'
 import { useTranslations } from 'next-intl'
+import SeriesStepper from '@/components/SeriesStepper'
 
 const editUrl = (path) => `${siteMetadata.siteRepo}/blob/main/data/${path}`
 const discussUrl = (path) =>
@@ -30,9 +31,19 @@ interface LayoutProps {
   next?: { path: string; title: string }
   prev?: { path: string; title: string }
   children: ReactNode
+  seriesPosts?: any[]
+  seriesTitle?: string
 }
 
-export default function PostLayout({ content, authorDetails, next, prev, children }: LayoutProps) {
+export default function PostLayout({
+  content,
+  authorDetails,
+  next,
+  prev,
+  children,
+  seriesPosts,
+  seriesTitle,
+}: LayoutProps) {
   const t = useTranslations('postLayout')
   const { filePath, path, slug, date, title, tags } = content
   const basePath = path.split('/')[0]
@@ -97,6 +108,15 @@ export default function PostLayout({ content, authorDetails, next, prev, childre
                 </ul>
               </dd>
             </dl>
+            {seriesPosts && seriesPosts.length > 0 && seriesTitle && (
+              <div className="pt-6 pb-6 xl:hidden text-left">
+                <SeriesStepper
+                  seriesTitle={seriesTitle}
+                  currentPostSlug={slug}
+                  posts={seriesPosts}
+                />
+              </div>
+            )}
             <div className="divide-y divide-gray-200 xl:col-span-3 xl:row-span-2 xl:pb-0 dark:divide-gray-700">
               <div className="prose dark:prose-invert max-w-none pt-10 pb-8">{children}</div>
               <div className="pt-6 pb-6 text-sm text-gray-700 dark:text-gray-300">
@@ -164,6 +184,15 @@ export default function PostLayout({ content, authorDetails, next, prev, childre
                 </Link>
               </div>
             </footer>
+            {seriesPosts && seriesPosts.length > 0 && seriesTitle && (
+              <div className="hidden xl:block xl:col-start-1 xl:row-start-3 xl:space-y-8 xl:pt-8">
+                <SeriesStepper
+                  seriesTitle={seriesTitle}
+                  currentPostSlug={slug}
+                  posts={seriesPosts}
+                />
+              </div>
+            )}
           </div>
         </div>
       </article>

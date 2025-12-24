@@ -102,6 +102,21 @@ export default async function Page(props: { params: Promise<{ locale: string; sl
     const authorResults = allAuthors.find((p) => p.slug === author && p.locale === locale)
     return coreContent(authorResults as Authors)
   })
+
+  // Series Logic
+  let seriesPosts: { title: string; slug: string; order: number }[] | null = null
+  if (post.series && post.series.title) {
+    const seriesTitle = post.series.title
+    seriesPosts = allBlogs
+      .filter((p) => p.locale === locale && p.series && p.series.title === seriesTitle)
+      .sort((a, b) => (a.series?.order || 0) - (b.series?.order || 0))
+      .map((p) => ({
+        title: p.title,
+        slug: p.slug,
+        order: p.series?.order || 0,
+      }))
+  }
+
   const mainContent = coreContent(post)
   const jsonLd = post.structuredData
   jsonLd['author'] = authorDetails.map((author) => {
@@ -119,7 +134,7 @@ export default async function Page(props: { params: Promise<{ locale: string; sl
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <Layout content={mainContent} authorDetails={authorDetails} next={next} prev={prev}>
+      <Layout content={mainContent} authorDetails={authorDetails} next={next} prev={prev} seriesPosts={seriesPosts} seriesTitle={post.series?.title}>
         <MDXLayoutRenderer code={post.body.code} components={components} toc={post.toc} />
       </Layout>
     </>
