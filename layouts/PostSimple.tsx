@@ -1,13 +1,16 @@
+'use client'
+
 import { ReactNode } from 'react'
 import { formatDate } from 'pliny/utils/formatDate'
 import { CoreContent } from 'pliny/utils/contentlayer'
 import type { Blog } from 'contentlayer/generated'
 import Comments from '@/components/Comments'
-import Link from '@/components/Link'
+import { Link } from '@/navigation'
 import PageTitle from '@/components/PageTitle'
 import SectionContainer from '@/components/SectionContainer'
 import siteMetadata from '@/data/siteMetadata'
 import ScrollTopAndComment from '@/components/ScrollTopAndComment'
+import { useTranslations } from 'next-intl'
 
 interface LayoutProps {
   content: CoreContent<Blog>
@@ -17,6 +20,7 @@ interface LayoutProps {
 }
 
 export default function PostLayout({ content, next, prev, children }: LayoutProps) {
+  const t = useTranslations('postSimple')
   const { path, slug, date, title } = content
 
   return (

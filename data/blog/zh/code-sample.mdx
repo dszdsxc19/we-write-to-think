@@ -1,0 +1,38 @@
+---
+title: 示例 Markdown 文件
+date: '2016-03-08'
+tags: ['markdown', '代码', '功能']
+draft: false
+summary: 示例 Markdown 文件，包含代码块和语法高亮
+---
+
+一篇带有 Markdown 格式的示例文章。
+
+## 行内高亮
+
+行内高亮示例 `sum = parseInt(num1) + parseInt(num2)`
+
+## 代码块
+
+一些 JavaScript 代码：
+
+```javascript
+var num1, num2, sum
+num1 = prompt('请输入第一个数字')
+num2 = prompt('请输入第二个数字')
+sum = parseInt(num1) + parseInt(num2) // "+" 表示相加
+alert('总和 = ' + sum) // "+" 表示合并成字符串
+```
+
+一些 Python 代码 🐍
+
+```python
+def fib():
+    a, b = 0, 1
+    while True:            # 第一次迭代：
+        yield a            # 先 yield 0，然后
+        a, b = b, a + b    # a 变为 1，b 也变为 1 (0 + 1)
+
+for index, fibonacci_number in zip(range(10), fib()):
+     print('{i:3}: {f:3}'.format(i=index, f=fibonacci_number))
+```

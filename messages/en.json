@@ -1,0 +1,104 @@
+{
+  "common": {
+    "noPostsFound": "No posts found.",
+    "noTagsFound": "No tags found.",
+    "loading": "Loading...",
+    "of": "of",
+    "search": "Search"
+  },
+  "header": {
+    "ariaLabel": {
+      "toggleMenu": "Toggle Menu"
+    },
+    "nav": {
+      "home": "Home",
+      "blog": "Blog",
+      "tags": "Tags",
+      "projects": "Projects",
+      "about": "About"
+    }
+  },
+  "footer": {
+    "credits": "Tailwind Nextjs Theme",
+    "themeCredit": "Tailwind Nextjs Theme"
+  },
+  "notFound": {
+    "title": "404",
+    "message": "Sorry we couldn't find this page.",
+    "description": "But dont worry, you can find plenty of other things on our homepage.",
+    "submessage": "But dont worry, you can find plenty of other things on our homepage.",
+    "button": "Back to homepage",
+    "backButton": "Back to homepage"
+  },
+  "home": {
+    "title": "Latest",
+    "noPosts": "No posts found.",
+    "readMore": "Read more",
+    "allPosts": "All Posts"
+  },
+  "about": {
+    "title": "About"
+  },
+  "projects": {
+    "title": "Projects",
+    "description": "Showcase your projects with a hero image (16 x 9)"
+  },
+  "blog": {
+    "title": "Blog",
+    "allPosts": "All Posts",
+    "readMore": "Read more",
+    "allPostsLink": "All Posts",
+    "ariaLabel": {
+      "readMore": "Read more: \"{title}\"",
+      "allPosts": "All posts"
+    }
+  },
+  "tags": {
+    "title": "Tags",
+    "description": "Things I blog about",
+    "allPosts": "All Posts",
+    "ariaLabel": {
+      "viewPostsTagged": "View posts tagged {tag}"
+    }
+  },
+  "tag": {
+    "description": "{title} tagged content"
+  },
+  "post": {
+    "ariaLabel": {
+      "publishedOn": "Published on",
+      "authors": "Authors",
+      "name": "Name",
+      "twitter": "Twitter",
+      "avatar": "avatar",
+      "backToBlog": "Back to the blog",
+      "previousPost": "Previous post: {title}",
+      "nextPost": "Next post: {title}"
+    },
+    "discussOnTwitter": "Discuss on Twitter",
+    "viewOnGitHub": "View on GitHub",
+    "tags": "Tags",
+    "previousArticle": "Previous Article",
+    "nextArticle": "Next Article",
+    "backToBlog": "Back to the blog"
+  },
+  "pagination": {
+    "previous": "Previous",
+    "next": "Next",
+    "pageIndicator": "{currentPage} of {totalPages}"
+  },
+  "theme": {
+    "ariaLabel": {
+      "themeSwitcher": "Theme switcher"
+    },
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
+  "scroll": {
+    "ariaLabel": {
+      "scrollToComment": "Scroll To Comment",
+      "scrollToTop": "Scroll To Top"
+    }
+  }
+}

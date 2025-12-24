@@ -1,0 +1,104 @@
+{
+  "common": {
+    "noPostsFound": "未找到文章。",
+    "noTagsFound": "未找到标签。",
+    "loading": "加载中...",
+    "of": "/",
+    "search": "搜索"
+  },
+  "header": {
+    "ariaLabel": {
+      "toggleMenu": "切换菜单"
+    },
+    "nav": {
+      "home": "首页",
+      "blog": "博客",
+      "tags": "标签",
+      "projects": "项目",
+      "about": "关于"
+    }
+  },
+  "footer": {
+    "credits": "Tailwind Nextjs 主题",
+    "themeCredit": "Tailwind Nextjs 主题"
+  },
+  "notFound": {
+    "title": "404",
+    "message": "抱歉，我们找不到此页面。",
+    "description": "别担心，您可以在我们的主页上找到许多其他内容。",
+    "submessage": "别担心，您可以在我们的主页上找到许多其他内容。",
+    "button": "返回首页",
+    "backButton": "返回首页"
+  },
+  "home": {
+    "title": "最新",
+    "noPosts": "未找到文章。",
+    "readMore": "阅读更多",
+    "allPosts": "所有文章"
+  },
+  "about": {
+    "title": "关于"
+  },
+  "projects": {
+    "title": "项目",
+    "description": "使用横幅图片（16 x 9）展示您的项目"
+  },
+  "blog": {
+    "title": "博客",
+    "allPosts": "所有文章",
+    "readMore": "阅读更多",
+    "allPostsLink": "所有文章",
+    "ariaLabel": {
+      "readMore": "阅读更多：\"{title}\"",
+      "allPosts": "所有文章"
+    }
+  },
+  "tags": {
+    "title": "标签",
+    "description": "我博客的内容分类",
+    "allPosts": "所有文章",
+    "ariaLabel": {
+      "viewPostsTagged": "查看标签为 {tag} 的文章"
+    }
+  },
+  "tag": {
+    "description": "{title} 标签相关内容"
+  },
+  "post": {
+    "ariaLabel": {
+      "publishedOn": "发布于",
+      "authors": "作者",
+      "name": "姓名",
+      "twitter": "Twitter",
+      "avatar": "头像",
+      "backToBlog": "返回博客",
+      "previousPost": "上一篇：{title}",
+      "nextPost": "下一篇：{title}"
+    },
+    "discussOnTwitter": "在 Twitter 上讨论",
+    "viewOnGitHub": "在 GitHub 上查看",
+    "tags": "标签",
+    "previousArticle": "上一篇",
+    "nextArticle": "下一篇",
+    "backToBlog": "返回博客"
+  },
+  "pagination": {
+    "previous": "上一页",
+    "next": "下一页",
+    "pageIndicator": "第 {currentPage} 页，共 {totalPages} 页"
+  },
+  "theme": {
+    "ariaLabel": {
+      "themeSwitcher": "主题切换器"
+    },
+    "light": "浅色",
+    "dark": "深色",
+    "system": "跟随系统"
+  },
+  "scroll": {
+    "ariaLabel": {
+      "scrollToComment": "滚动到评论",
+      "scrollToTop": "返回顶部"
+    }
+  }
+}

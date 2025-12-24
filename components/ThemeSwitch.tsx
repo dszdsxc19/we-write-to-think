@@ -11,6 +11,7 @@ import {
   RadioGroup,
   Transition,
 } from '@headlessui/react'
+import { useTranslations } from 'next-intl'
 
 const Sun = () => (
   <svg
@@ -57,6 +58,7 @@ const Blank = () => <svg className="h-6 w-6" />
 const ThemeSwitch = () => {
   const [mounted, setMounted] = useState(false)
   const { theme, setTheme, resolvedTheme } = useTheme()
+  const t = useTranslations('themeSwitch')
 
   // When mounted on client, now we can show the UI
   useEffect(() => setMounted(true), [])
@@ -90,7 +92,7 @@ const ThemeSwitch = () => {
                         <div className="mr-2">
                           <Sun />
                         </div>
-                        Light
+                        {t('light')}
                       </button>
                     )}
                   </MenuItem>
@@ -106,7 +108,7 @@ const ThemeSwitch = () => {
                         <div className="mr-2">
                           <Moon />
                         </div>
-                        Dark
+                        {t('dark')}
                       </button>
                     )}
                   </MenuItem>
@@ -122,7 +124,7 @@ const ThemeSwitch = () => {
                         <div className="mr-2">
                           <Monitor />
                         </div>
-                        System
+                        {t('system')}
                       </button>
                     )}
                   </MenuItem>

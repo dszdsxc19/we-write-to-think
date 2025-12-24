@@ -46,11 +46,50 @@ const computedFields: ComputedFields = {
   readingTime: { type: 'json', resolve: (doc) => readingTime(doc.body.raw) },
   slug: {
     type: 'string',
-    resolve: (doc) => doc._raw.flattenedPath.replace(/^.+?(\/)/, ''),
+    resolve: (doc) => {
+      const pathParts = doc._raw.flattenedPath.split('/')
+      // For blog posts: 'blog/en/xxx' -> 'xxx'
+      // For authors: 'authors/en/xxx' -> 'xxx'
+      // Remove locale prefix (second segment for blog/author posts)
+      if (pathParts.length >= 2 && (pathParts[1] === 'en' || pathParts[1] === 'zh')) {
+        pathParts.splice(1, 1)
+      }
+      // Remove the first segment (blog/ or authors/) for cleaner slugs
+      if (pathParts[0] === 'blog' || pathParts[0] === 'authors') {
+        pathParts.shift()
+      }
+      return pathParts.join('/')
+    },
+  },
+  locale: {
+    type: 'string',
+    resolve: (doc) => {
+      const pathParts = doc._raw.flattenedPath.split('/')
+      // Extract locale from path (e.g., 'blog/en/post' -> 'en')
+      if (pathParts.length >= 2 && (pathParts[1] === 'en' || pathParts[1] === 'zh')) {
+        return pathParts[1]
+      }
+      // Check if first part is locale (e.g., 'authors/en/default')
+      if (pathParts.length >= 1 && (pathParts[0] === 'en' || pathParts[0] === 'zh')) {
+        return pathParts[0]
+      }
+      return 'en' // Default locale
+    },
   },
   path: {
     type: 'string',
-    resolve: (doc) => doc._raw.flattenedPath,
+    resolve: (doc) => {
+      const pathParts = doc._raw.flattenedPath.split('/')
+      // Remove locale prefix (second segment for blog/author posts)
+      if (pathParts.length >= 2 && (pathParts[1] === 'en' || pathParts[1] === 'zh')) {
+        pathParts.splice(1, 1)
+      }
+      // Remove the first segment (blog/ or authors/) for cleaner paths
+      if (pathParts[0] === 'blog' || pathParts[0] === 'authors') {
+        pathParts.shift()
+      }
+      return pathParts.join('/')
+    },
   },
   filePath: {
     type: 'string',
