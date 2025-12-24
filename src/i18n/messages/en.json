@@ -96,9 +96,40 @@
     "system": "System"
   },
   "scroll": {
+    "scrollToTop": "Scroll to top",
+    "scrollToComment": "Scroll to comment",
+    "scrollButtons": {
+      "scrollToTop": "Scroll to top",
+      "scrollToComment": "Scroll to comment"
+    },
     "ariaLabel": {
       "scrollToComment": "Scroll To Comment",
       "scrollToTop": "Scroll To Top"
     }
+  },
+  "listLayout": {
+    "allPosts": "All Posts"
+  },
+  "card": {
+    "learnMore": "Learn more"
+  },
+  "scrollButtons": {
+    "scrollToTop": "Scroll to top",
+    "scrollToComment": "Scroll to comment"
+  },
+  "author": {
+    "title": "About"
+  },
+  "postLayout": {
+    "publishedOn": "Published on",
+    "authors": "Authors",
+    "name": "Name",
+    "twitter": "Twitter",
+    "discussOnTwitter": "Discuss on Twitter",
+    "viewOnGitHub": "View on GitHub",
+    "tags": "Tags",
+    "previousArticle": "Previous Article",
+    "nextArticle": "Next Article",
+    "backToBlog": "Back to the blog"
   }
 }

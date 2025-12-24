@@ -156,3 +156,19 @@ Uses Husky for pre-commit hooks with lint-staged:
 
 - JS/TS/TSX files: ESLint with auto-fix
 - JSON/CSS/MD/MDX files: Prettier formatting
+
+## Important Notes
+
+### i18n Content Structure
+
+Blog posts are organized by locale in the `data/blog/` directory:
+- English posts: `data/blog/en/**/*.mdx`
+- Chinese posts: `data/blog/zh/**/*.mdx`
+
+The Contentlayer configuration extracts locale from the path (second segment) and adds it as a computed field. This allows filtering posts by locale in pages like `/app/[locale]/blog/page.tsx`.
+
+### Turbopack Compatibility
+
+**Next.js 16+ is NOT compatible with Contentlayer2.** Next.js 16 uses Turbopack by default, which does not support `next-contentlayer2`.
+
+The project is downgraded to Next.js 15.x to maintain webpack support for Contentlayer2. If upgrading to Next.js 16, Contentlayer2 will fail to generate content and the build will error with "Module not found: Can't resolve 'contentlayer/generated'".

@@ -36,9 +36,6 @@
       "@/navigation": [
         "src/navigation.ts"
       ],
-      "@/messages/*": [
-        "messages/*"
-      ],
       "contentlayer/generated": [
         "./.contentlayer/generated"
       ],

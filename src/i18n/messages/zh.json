@@ -96,9 +96,40 @@
     "system": "跟随系统"
   },
   "scroll": {
+    "scrollToTop": "回到顶部",
+    "scrollToComment": "跳到评论",
+    "scrollButtons": {
+      "scrollToTop": "回到顶部",
+      "scrollToComment": "跳到评论"
+    },
     "ariaLabel": {
       "scrollToComment": "滚动到评论",
       "scrollToTop": "返回顶部"
     }
+  },
+  "listLayout": {
+    "allPosts": "所有文章"
+  },
+  "card": {
+    "learnMore": "了解更多"
+  },
+  "scrollButtons": {
+    "scrollToTop": "回到顶部",
+    "scrollToComment": "跳到评论"
+  },
+  "author": {
+    "title": "关于"
+  },
+  "postLayout": {
+    "publishedOn": "发布于",
+    "authors": "作者",
+    "name": "姓名",
+    "twitter": "Twitter",
+    "discussOnTwitter": "在 Twitter 上讨论",
+    "viewOnGitHub": "在 GitHub 上查看",
+    "tags": "标签",
+    "previousArticle": "上一篇",
+    "nextArticle": "下一篇",
+    "backToBlog": "返回博客"
   }
 }
