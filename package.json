@@ -3,12 +3,12 @@
   "version": "2.4.0",
   "private": true,
   "scripts": {
-    "start": "next dev",
-    "dev": "rm -rf .contentlayer .next && cross-env INIT_CWD=$PWD next dev",
-    "build": "cross-env INIT_CWD=$PWD next build && cross-env NODE_OPTIONS='--experimental-json-modules' node ./scripts/postbuild.mjs",
-    "serve": "next start",
-    "analyze": "cross-env ANALYZE=true next build",
-    "lint": "next lint --fix --dir pages --dir app --dir components --dir lib --dir layouts --dir scripts",
+    "start": "bun run --bun next dev",
+    "dev": "rm -rf .contentlayer .next && bun run --bun cross-env INIT_CWD=$PWD next dev",
+    "build": "bun run --bun cross-env INIT_CWD=$PWD next build && cross-env NODE_OPTIONS='--experimental-json-modules' node ./scripts/postbuild.mjs",
+    "serve": "bun run --bun next start",
+    "analyze": "bun run --bun cross-env ANALYZE=true next build",
+    "lint": "bun run --bun next lint --fix --dir pages --dir app --dir components --dir lib --dir layouts --dir scripts",
     "prepare": "husky"
   },
   "dependencies": {
