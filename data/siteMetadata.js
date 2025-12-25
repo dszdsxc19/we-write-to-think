@@ -4,6 +4,11 @@ const siteMetadata = {
   author: 'Terry',
   headerTitle: "Terry's Blog",
   description: '写作即思考 - A blog about technology and thinking',
+  descriptions: [
+    '写作即思考 - A blog about technology and thinking',
+    '编程即创造 - Coding is creating',
+    '分享即学习 - Sharing is learning'
+  ],
   language: 'en-us',
   theme: 'system', // system, dark or light
   siteUrl: 'https://your-domain.com',

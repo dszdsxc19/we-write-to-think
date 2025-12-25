@@ -12,6 +12,7 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "@emotion/is-prop-valid": "^1.4.0",
     "@headlessui/react": "2.2.9",
     "@next/bundle-analyzer": "15.2.4",
     "@tailwindcss/forms": "^0.5.11",
@@ -21,6 +22,7 @@
     "clsx": "^2.1.1",
     "contentlayer2": "0.5.8",
     "esbuild": "0.27.2",
+    "framer-motion": "^12.23.26",
     "github-slugger": "^2.0.0",
     "gray-matter": "^4.0.3",
     "hast-util-from-html-isomorphic": "^2.0.0",
