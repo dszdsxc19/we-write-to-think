@@ -26,7 +26,7 @@ export default function TableOfContents({ toc, triggerId, className }: TableOfCo
   const [activeId, setActiveId] = useState<string>('')
   const [isVisible, setIsVisible] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
-  const listRef = useRef<HTMLUListElement>(null)
+  const listRef = useRef<HTMLDivElement>(null)
   const activeItemRef = useRef<HTMLLIElement>(null)
 
   // 计算应该显示的TOC项（hover时显示全部，未hover时只显示active项附近）
