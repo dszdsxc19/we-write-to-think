@@ -12,6 +12,7 @@ import Tag from '@/components/Tag'
 import siteMetadata from '@/data/siteMetadata'
 import ScrollTopAndComment from '@/components/ScrollTopAndComment'
 import { useTranslations } from 'next-intl'
+import { useParams } from 'next/navigation'
 import TableOfContents from '@/components/TableOfContents'
 import MermaidLoader from '@/components/MermaidLoader'
 
@@ -46,6 +47,8 @@ export default function PostLayout({
   const t = useTranslations('postLayout')
   const { filePath, path, slug, date, title, tags } = content
   const basePath = path.split('/')[0]
+  const params = useParams()
+  const locale = params.locale as string
 
   return (
     <SectionContainer>
@@ -151,7 +154,7 @@ export default function PostLayout({
                           {t('previousArticle')}
                         </h2>
                         <div className="text-primary-500 hover:text-primary-600 dark:hover:text-primary-400">
-                          <Link href={`/${prev.path}`}>{prev.title}</Link>
+                          <Link href={`/blog/${prev.path}`}>{prev.title}</Link>
                         </div>
                       </div>
                     )}
@@ -161,7 +164,7 @@ export default function PostLayout({
                           {t('nextArticle')}
                         </h2>
                         <div className="text-primary-500 hover:text-primary-600 dark:hover:text-primary-400">
-                          <Link href={`/${next.path}`}>{next.title}</Link>
+                          <Link href={`/blog/${next.path}`}>{next.title}</Link>
                         </div>
                       </div>
                     )}
