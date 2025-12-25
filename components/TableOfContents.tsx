@@ -33,6 +33,11 @@ export default function TableOfContents({ toc, triggerId, className }: TableOfCo
   const visibleToc = useMemo(() => {
     if (toc.length === 0) return []
 
+    // hover 时显示全部 toc
+    if (isHovered) {
+      return toc
+    }
+
     const activeIndex = toc.findIndex((item) => item.url === `#${activeId}`)
 
     if (activeIndex === -1) {
@@ -43,7 +48,7 @@ export default function TableOfContents({ toc, triggerId, className }: TableOfCo
     const end = Math.min(toc.length, activeIndex + VISIBLE_RANGE + 1)
 
     return toc.slice(start, end)
-  }, [toc, activeId])
+  }, [toc, activeId, isHovered])
 
   // Track active heading
   useEffect(() => {
