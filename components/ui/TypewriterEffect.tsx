@@ -62,7 +62,7 @@ export const TypewriterEffect = ({
                   initial={{}}
                   key={`char-${index}`}
                   className={cn(
-                    `dark:text-white text-black opacity-0 hidden`,
+                    `opacity-0 hidden`,
                     word.className
                   )}
                 >
@@ -79,7 +79,7 @@ export const TypewriterEffect = ({
   return (
     <div
       className={cn(
-        "text-base sm:text-xl md:text-3xl lg:text-5xl font-bold text-center",
+        "font-bold text-center",
         className
       )}
     >
@@ -94,7 +94,8 @@ export const TypewriterEffect = ({
         transition={{
           duration: 0.8,
           repeat: Infinity,
-          repeatType: "reverse",
+          repeatType: "mirror",
+          ease: "easeInOut"
         }}
         className={cn(
           "inline-block rounded-sm w-[4px] h-4 sm:h-6 xl:h-12 bg-blue-500",
