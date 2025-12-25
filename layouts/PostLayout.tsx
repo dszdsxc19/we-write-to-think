@@ -12,6 +12,7 @@ import Tag from '@/components/Tag'
 import siteMetadata from '@/data/siteMetadata'
 import ScrollTopAndComment from '@/components/ScrollTopAndComment'
 import { useTranslations } from 'next-intl'
+import TableOfContents from '@/components/TableOfContents'
 
 const editUrl = (path) => `${siteMetadata.siteRepo}/blob/main/data/${path}`
 const discussUrl = (path) =>
@@ -30,15 +31,24 @@ interface LayoutProps {
   next?: { path: string; title: string }
   prev?: { path: string; title: string }
   children: ReactNode
+  toc?: { value: string; url: string; depth: number }[]
 }
 
-export default function PostLayout({ content, authorDetails, next, prev, children }: LayoutProps) {
+export default function PostLayout({
+  content,
+  authorDetails,
+  next,
+  prev,
+  children,
+  toc,
+}: LayoutProps) {
   const t = useTranslations('postLayout')
   const { filePath, path, slug, date, title, tags } = content
   const basePath = path.split('/')[0]
 
   return (
     <SectionContainer>
+      {toc && <TableOfContents toc={toc} />}
       <ScrollTopAndComment />
       <article>
         <div className="xl:divide-y xl:divide-gray-200 xl:dark:divide-gray-700">
@@ -65,7 +75,10 @@ export default function PostLayout({ content, authorDetails, next, prev, childre
               <dd>
                 <ul className="flex flex-wrap justify-center gap-4 sm:space-x-12 xl:block xl:space-y-8 xl:space-x-0">
                   {authorDetails.map((author, index) => (
-                    <li className="flex items-center space-x-2" key={`author-${index}-${author.name}`}>
+                    <li
+                      className="flex items-center space-x-2"
+                      key={`author-${index}-${author.name}`}
+                    >
                       {author.avatar && (
                         <Image
                           src={author.avatar}
