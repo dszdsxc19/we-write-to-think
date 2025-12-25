@@ -48,64 +48,76 @@ const ThemeSwitch = () => {
     overlay.style.position = 'fixed'
     overlay.style.top = '0'
     overlay.style.right = '0'
+    overlay.style.width = '100vw'
+    overlay.style.height = '100vh'
     overlay.style.zIndex = '9999' // Cover everything
-    overlay.style.borderRadius = '50%'
-    // Start small
-    overlay.style.width = '0px'
-    overlay.style.height = '0px'
-    overlay.style.transform = 'translate(50%, -50%)' // Center at top-right
+    overlay.style.pointerEvents = 'none' // Don't block clicks during fade out (though we remove it)
 
-    // Initial State: Use white background with difference blend mode
-    // This keeps content visible during the expansion phase
-    overlay.style.backgroundColor = '#ffffff'
-    overlay.style.mixBlendMode = 'difference'
+    // Set solid background color based on target theme
+    // We use a solid color to prevent color overlapping artifacts and flickering
+    if (newTheme === 'dark') {
+      overlay.style.backgroundColor = 'var(--color-gray-950, #030712)'
+    } else {
+      overlay.style.backgroundColor = '#ffffff'
+    }
 
-    overlay.style.transition = `width ${duration}ms ease-in, height ${duration}ms ease-in`
-
-    document.body.appendChild(overlay)
-
+    // Initial mask state: Fully transparent (circle radius 0)
+    // We use mask-image to create a soft-edged expanding circle
+    const startRadius = 0
     // Calculate radius to cover the screen from top-right to bottom-left
-    const maxDimension = Math.hypot(window.innerWidth, window.innerHeight)
-    const diameter = maxDimension * 2.5 // Safety margin
+    // Add extra buffer for the gradient edge
+    const maxRadius = Math.hypot(window.innerWidth, window.innerHeight) + 50
+
+    // Helper to set mask
+    const setMask = (radius: number) => {
+      const gradient = `radial-gradient(circle at top right, black ${radius}px, transparent ${radius + 50}px)`
+      overlay.style.maskImage = gradient
+      overlay.style.webkitMaskImage = gradient
+    }
+
+    setMask(startRadius)
+    document.body.appendChild(overlay)
 
     // Force reflow
     void overlay.offsetHeight
 
-    // Start expansion
-    overlay.style.width = `${diameter}px`
-    overlay.style.height = `${diameter}px`
+    // Animation Loop
+    const startTime = performance.now()
 
-    // When expansion ends...
-    setTimeout(() => {
-      // 1. Switch overlay to Normal mode and set it to the TARGET theme color.
-      // This covers the screen with the solid new background color, hiding the "jitter"
-      // that occurs when the underlying theme switches.
-      overlay.style.mixBlendMode = 'normal'
-      if (newTheme === 'dark') {
-         // Target is Dark: Use the dark gray color
-         overlay.style.backgroundColor = 'var(--color-gray-950, #030712)'
+    const animate = (currentTime: number) => {
+      const elapsed = currentTime - startTime
+      const progress = Math.min(elapsed / duration, 1)
+
+      // Easing function (ease-in-out ish)
+      const ease = progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2
+
+      const currentRadius = startRadius + (maxRadius - startRadius) * ease
+      setMask(currentRadius)
+
+      if (progress < 1) {
+        requestAnimationFrame(animate)
       } else {
-         // Target is Light: Use white
-         overlay.style.backgroundColor = '#ffffff'
-      }
+        // Animation Complete: Overlay covers screen
 
-      // 2. Switch the actual theme (underneath the overlay)
-      setTheme(newTheme)
+        // 1. Switch Theme
+        setTheme(newTheme)
 
-      // 3. Fade out the overlay to reveal the new theme
-      // Wait a tiny bit for React to update DOM
-      setTimeout(() => {
-        overlay.style.transition = `opacity ${fadeDuration}ms ease-out`
-        overlay.style.opacity = '0'
-
-        // Remove after fade
+        // 2. Wait a tick for theme to apply, then fade out
         setTimeout(() => {
-          if (overlay.parentNode) {
-            overlay.parentNode.removeChild(overlay)
-          }
-        }, fadeDuration)
-      }, 50)
-    }, duration)
+           overlay.style.transition = `opacity ${fadeDuration}ms ease-out`
+           overlay.style.opacity = '0'
+
+           // Remove after fade
+           setTimeout(() => {
+             if (overlay.parentNode) {
+               overlay.parentNode.removeChild(overlay)
+             }
+           }, fadeDuration)
+        }, 50)
+      }
+    }
+
+    requestAnimationFrame(animate)
   }
 
   if (!mounted) {
