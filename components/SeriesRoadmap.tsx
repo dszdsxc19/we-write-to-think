@@ -8,6 +8,7 @@ import { CoreContent } from 'pliny/utils/contentlayer'
 import { X, BookOpen, Clock, ChevronRight } from 'lucide-react'
 import clsx from 'clsx'
 import { twMerge } from 'tailwind-merge'
+import { disableBodyScroll, enableBodyScroll, clearAllBodyScrollLocks } from 'body-scroll-lock'
 
 interface SeriesRoadmapProps {
   series: string
@@ -25,6 +26,15 @@ export default function SeriesRoadmap({ series, currentPostSlug, posts }: Series
     .sort((a, b) => (a.step || 0) - (b.step || 0))
 
   const toggleOpen = () => setIsOpen(!isOpen)
+
+  useEffect(() => {
+    if (isOpen && containerRef.current) {
+      disableBodyScroll(containerRef.current)
+    } else {
+      clearAllBodyScrollLocks()
+    }
+    return () => clearAllBodyScrollLocks()
+  }, [isOpen])
 
   // Calculate SVG path based on nodes
   const NODE_WIDTH = 280 // Width of card area + spacing
