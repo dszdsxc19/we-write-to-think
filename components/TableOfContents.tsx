@@ -174,7 +174,6 @@ export default function TableOfContents({ toc, triggerId, className }: TableOfCo
                     paddingLeft: isHovered || isActive ? `${(item.depth - 2) * 12}px` : 0,
                   }}
                   onClick={(e) => {
-                    e.preventDefault()
                     const el = document.getElementById(item.url.slice(1))
                     if (el) {
                       const headerOffset = 100
@@ -185,6 +184,8 @@ export default function TableOfContents({ toc, triggerId, className }: TableOfCo
                         top: offsetPosition,
                         behavior: 'smooth',
                       })
+                      // Update URL without page jump
+                      history.pushState(null, '', item.url)
                     }
                   }}
                 >
