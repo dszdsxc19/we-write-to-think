@@ -8,7 +8,9 @@ const Sun = () => (
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 20 20"
     fill="currentColor"
-    className="group:hover:text-gray-100 h-6 w-6"
+    stroke="currentColor"
+    strokeWidth="0"
+    className="group-hover:text-gray-100 group-hover:rotate-90 group-hover:stroke-2 h-6 w-6 transition-all duration-300"
   >
     <path
       fillRule="evenodd"
@@ -22,7 +24,7 @@ const Moon = () => (
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 20 20"
     fill="currentColor"
-    className="group:hover:text-gray-100 h-6 w-6"
+    className="group-hover:text-gray-100 h-6 w-6 transition-transform duration-300 ease-in-out group-hover:rotate-12"
   >
     <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
   </svg>
@@ -31,7 +33,6 @@ const Moon = () => (
 const ThemeSwitch = () => {
   const [mounted, setMounted] = useState(false)
   const { theme, setTheme, resolvedTheme } = useTheme()
-  const t = useTranslations('theme')
 
   // When mounted on client, now we can show the UI
   useEffect(() => setMounted(true), [])
@@ -49,7 +50,7 @@ const ThemeSwitch = () => {
     overlay.style.position = 'fixed'
     overlay.style.top = '0'
     overlay.style.right = '0'
-    overlay.style.zIndex = '9999'
+    overlay.style.zIndex = '10' // Reduced z-index to be behind content (which should be z-20)
     overlay.style.borderRadius = '50%'
     // Start small
     overlay.style.width = '0px'
@@ -57,10 +58,6 @@ const ThemeSwitch = () => {
     overlay.style.transform = 'translate(50%, -50%)' // Center at top-right
 
     // Set background color based on target theme
-    // We can use the Tailwind CSS variables or classes.
-    // Since we are creating a raw DOM element, classes are better if they are available globally,
-    // but applying classes might not trigger styles if they are scoped or purged (though basic bg-white/gray-950 should be safe).
-    // Using CSS variables is safer for precise color matching if defined in :root.
     if (newTheme === 'dark') {
       overlay.style.backgroundColor = 'var(--color-gray-950, #030712)' // Fallback to gray-950 hex
     } else {
@@ -109,7 +106,7 @@ const ThemeSwitch = () => {
     <button
       aria-label="Toggle Dark Mode"
       type="button"
-      className="mr-1 ml-1 h-8 w-8 rounded-full p-1 sm:ml-4"
+      className="group mr-1 ml-1 h-8 w-8 rounded-full p-1 sm:ml-4"
       onClick={toggleTheme}
     >
       {resolvedTheme === 'dark' ? <Sun /> : <Moon />}
