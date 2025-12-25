@@ -8,9 +8,7 @@ const Sun = () => (
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 20 20"
     fill="currentColor"
-    stroke="currentColor"
-    strokeWidth="0"
-    className="group-hover:text-gray-100 group-hover:rotate-90 group-hover:stroke-2 h-6 w-6 transition-all duration-300"
+    className="group-hover:text-gray-100 group-hover:rotate-90 h-6 w-6 transition-transform duration-300"
   >
     <path
       fillRule="evenodd"
@@ -24,7 +22,7 @@ const Moon = () => (
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 20 20"
     fill="currentColor"
-    className="group-hover:text-gray-100 h-6 w-6 transition-transform duration-300 ease-in-out group-hover:rotate-12"
+    className="group-hover:text-gray-100 h-6 w-6 transition-transform duration-300 ease-in-out group-hover:-rotate-12"
   >
     <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
   </svg>
@@ -50,19 +48,17 @@ const ThemeSwitch = () => {
     overlay.style.position = 'fixed'
     overlay.style.top = '0'
     overlay.style.right = '0'
-    overlay.style.zIndex = '10' // Reduced z-index to be behind content (which should be z-20)
+    overlay.style.zIndex = '9999' // Cover everything
     overlay.style.borderRadius = '50%'
     // Start small
     overlay.style.width = '0px'
     overlay.style.height = '0px'
     overlay.style.transform = 'translate(50%, -50%)' // Center at top-right
 
-    // Set background color based on target theme
-    if (newTheme === 'dark') {
-      overlay.style.backgroundColor = 'var(--color-gray-950, #030712)' // Fallback to gray-950 hex
-    } else {
-      overlay.style.backgroundColor = '#ffffff'
-    }
+    // Use white background with difference blend mode to invert colors underneath
+    // This creates the visual effect of switching to the opposite theme without covering the text
+    overlay.style.backgroundColor = '#ffffff'
+    overlay.style.mixBlendMode = 'difference'
 
     overlay.style.transition = `width ${duration}ms ease-in, height ${duration}ms ease-in`
 
