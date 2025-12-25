@@ -1,12 +1,11 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { motion, AnimatePresence, useScroll, useSpring, useTransform } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Link } from '@/navigation'
 import type { Blog } from 'contentlayer/generated'
 import { CoreContent } from 'pliny/utils/contentlayer'
-import { X, BookOpen, Clock, ChevronRight } from 'lucide-react'
-import clsx from 'clsx'
+import { X, BookOpen, Clock } from 'lucide-react'
 import { twMerge } from 'tailwind-merge'
 import { disableBodyScroll, enableBodyScroll, clearAllBodyScrollLocks } from 'body-scroll-lock'
 
@@ -36,11 +35,36 @@ export default function SeriesRoadmap({ series, currentPostSlug, posts }: Series
     return () => clearAllBodyScrollLocks()
   }, [isOpen])
 
-  // Calculate SVG path based on nodes
-  const NODE_WIDTH = 280 // Width of card area + spacing
+  // Dimensions
+  const NODE_WIDTH = 280
   const START_PADDING = 100
   const HALF_NODE = NODE_WIDTH / 2
-  const pathLength = (seriesPosts.length - 1) * NODE_WIDTH
+  const AMPLITUDE = 60 // Vertical offset for staggering
+  const SVG_HEIGHT = AMPLITUDE * 2 + 100 // Enough height for waves
+  const CENTER_Y = SVG_HEIGHT / 2
+
+  // Generate Path for the Beam
+  const generatePath = () => {
+    if (seriesPosts.length < 2) return ''
+
+    let path = `M ${START_PADDING + HALF_NODE} ${CENTER_Y + (0 % 2 === 0 ? -AMPLITUDE : AMPLITUDE)}`
+
+    for (let i = 0; i < seriesPosts.length - 1; i++) {
+      const startX = START_PADDING + i * NODE_WIDTH + HALF_NODE
+      const startY = CENTER_Y + (i % 2 === 0 ? -AMPLITUDE : AMPLITUDE)
+      const endX = START_PADDING + (i + 1) * NODE_WIDTH + HALF_NODE
+      const endY = CENTER_Y + ((i + 1) % 2 === 0 ? -AMPLITUDE : AMPLITUDE)
+
+      // Control points for smooth S-curve
+      const cp1X = startX + NODE_WIDTH / 2
+      const cp1Y = startY
+      const cp2X = endX - NODE_WIDTH / 2
+      const cp2Y = endY
+
+      path += ` C ${cp1X} ${cp1Y}, ${cp2X} ${cp2Y}, ${endX} ${endY}`
+    }
+    return path
+  }
 
   return (
     <>
@@ -85,21 +109,36 @@ export default function SeriesRoadmap({ series, currentPostSlug, posts }: Series
               ref={containerRef}
             >
               <div
-                className="relative flex min-w-full items-center px-[100px]"
-                style={{ width: `${Math.max(100, seriesPosts.length * NODE_WIDTH + 200)}px` }}
+                className="relative flex min-h-full min-w-full items-center px-[100px]"
+                style={{
+                  width: `${Math.max(100, seriesPosts.length * NODE_WIDTH + 200)}px`,
+                  height: '100%',
+                }}
               >
-                {/* Connecting Line (Background) */}
-                <div className="absolute top-1/2 right-0 left-0 h-0.5 -translate-y-1/2 bg-gray-200 dark:bg-gray-800" />
-
                 {/* Glowing Beam (SVG) */}
                 <svg
-                  className="pointer-events-none absolute top-1/2 left-0 -translate-y-1/2 overflow-visible"
+                  className="pointer-events-none absolute left-0 overflow-visible"
+                  style={{
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    width: '100%',
+                    height: SVG_HEIGHT,
+                  }}
                   width="100%"
-                  height="20"
-                  style={{ minWidth: '100%' }}
+                  height={SVG_HEIGHT}
                 >
+                  {/* Background Path (Static dim line) */}
+                  <path
+                    d={generatePath()}
+                    fill="none"
+                    className="stroke-gray-200 dark:stroke-gray-800"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+
+                  {/* Animated Glowing Path */}
                   <motion.path
-                    d={`M ${START_PADDING + HALF_NODE} 10 L ${START_PADDING + HALF_NODE + pathLength} 10`}
+                    d={generatePath()}
                     fill="none"
                     stroke="url(#beam-gradient)"
                     strokeWidth="4"
@@ -107,7 +146,7 @@ export default function SeriesRoadmap({ series, currentPostSlug, posts }: Series
                     initial={{ pathLength: 0 }}
                     animate={{ pathLength: 1 }}
                     transition={{
-                      duration: Math.max(2, seriesPosts.length * 0.2),
+                      duration: Math.max(2, seriesPosts.length * 0.4),
                       ease: 'easeInOut',
                       repeat: Infinity,
                       repeatType: 'loop',
@@ -130,11 +169,19 @@ export default function SeriesRoadmap({ series, currentPostSlug, posts }: Series
                     (post.step || 0) <
                     (seriesPosts.find((p) => p.slug === currentPostSlug)?.step || 0)
 
+                  const isEven = index % 2 === 0
+                  const yOffset = isEven ? -AMPLITUDE : AMPLITUDE
+
                   return (
                     <div
                       key={post.slug}
-                      className="group relative flex flex-shrink-0 flex-col items-center justify-center"
-                      style={{ width: NODE_WIDTH }}
+                      className="absolute flex flex-col items-center justify-center"
+                      style={{
+                        width: NODE_WIDTH,
+                        left: START_PADDING + index * NODE_WIDTH,
+                        top: '50%',
+                        transform: `translateY(calc(-50% + ${yOffset}px))`,
+                      }}
                     >
                       {/* Node Point */}
                       <Link href={`/blog/${post.slug}`} onClick={() => setIsOpen(false)}>
@@ -159,14 +206,17 @@ export default function SeriesRoadmap({ series, currentPostSlug, posts }: Series
 
                       {/* Info Card (Hover) */}
                       <motion.div
-                        initial={{ opacity: 0, y: 20 }}
+                        initial={{ opacity: 0, y: isEven ? -10 : 10 }} // Slight slide in direction
                         whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ margin: '0px 0px -50px 0px' }} // Adjust as needed
+                        viewport={{ margin: '0px 0px -50px 0px' }}
                         className={twMerge(
-                          'absolute top-12 w-64 rounded-xl border border-gray-200 bg-white p-4 shadow-xl transition-all dark:border-gray-700 dark:bg-gray-900',
+                          'absolute w-64 rounded-xl border border-gray-200 bg-white p-4 shadow-xl transition-all dark:border-gray-700 dark:bg-gray-900',
                           isCurrent
                             ? 'ring-primary-500/20 dark:ring-primary-400/20 ring-2'
-                            : 'opacity-50 grayscale transition-all duration-300 hover:opacity-100 hover:grayscale-0'
+                            : 'opacity-50 grayscale transition-all duration-300 hover:opacity-100 hover:grayscale-0',
+                          // If node is UP (even, -offset), card goes DOWN (top: 100% + spacing)
+                          // If node is DOWN (odd, +offset), card goes UP (bottom: 100% + spacing)
+                          isEven ? 'top-12' : 'bottom-12'
                         )}
                       >
                         <div className="mb-2 flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
