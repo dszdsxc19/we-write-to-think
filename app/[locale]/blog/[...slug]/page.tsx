@@ -125,6 +125,7 @@ export default async function Page(props: { params: Promise<{ locale: string; sl
         next={next}
         prev={prev}
         toc={post.toc}
+        posts={sortedCoreContents}
       >
         <MDXLayoutRenderer code={post.body.code} components={components} toc={post.toc} />
       </Layout>
