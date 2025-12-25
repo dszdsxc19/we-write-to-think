@@ -12,6 +12,7 @@ import Tag from '@/components/Tag'
 import siteMetadata from '@/data/siteMetadata'
 import ScrollTopAndComment from '@/components/ScrollTopAndComment'
 import { useTranslations } from 'next-intl'
+import TableOfContents from '@/components/TableOfContents'
 
 const editUrl = (path) => `${siteMetadata.siteRepo}/blob/main/data/${path}`
 const discussUrl = (path) =>
@@ -30,9 +31,17 @@ interface LayoutProps {
   next?: { path: string; title: string }
   prev?: { path: string; title: string }
   children: ReactNode
+  toc?: { value: string; url: string; depth: number }[]
 }
 
-export default function PostLayout({ content, authorDetails, next, prev, children }: LayoutProps) {
+export default function PostLayout({
+  content,
+  authorDetails,
+  next,
+  prev,
+  children,
+  toc,
+}: LayoutProps) {
   const t = useTranslations('postLayout')
   const { filePath, path, slug, date, title, tags } = content
   const basePath = path.split('/')[0]
@@ -162,10 +171,18 @@ export default function PostLayout({ content, authorDetails, next, prev, childre
                   href={`/${basePath}`}
                   className="text-primary-500 hover:text-primary-600 dark:hover:text-primary-400"
                   aria-label="Back to the blog"
+                  id="back-to-blog"
                 >
                   &larr; {t('backToBlog')}
                 </Link>
               </div>
+              {toc && (
+                <TableOfContents
+                  toc={toc}
+                  triggerId="back-to-blog"
+                  className="mt-8 hidden xl:block"
+                />
+              )}
             </footer>
           </div>
         </div>
