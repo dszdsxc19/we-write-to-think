@@ -4,171 +4,152 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Next.js 15 blog template using App Router, React Server Components, and Contentlayer2 for MDX-based content management. It uses Bun as the runtime and package manager.
+Next.js 15 blog template with App Router, React Server Components, and Contentlayer2 for MDX content management. Uses Bun as runtime and package manager.
 
 ## Development Commands
 
 ```bash
-bun dev               # Start development server
-bun run build         # Build for production (includes RSS generation)
-bun run start         # Start production server
-bun run lint          # Lint and auto-fix code
-bun run analyze       # Build with bundle analysis
+bun dev              # Start development server
+bun run build        # Build for production
+bun run start        # Start production server
+bun run lint         # Lint and auto-fix code
 ```
+
+## Content Frontmatter
+
+### Blog Post Fields
+
+| Field          | Type    | Required | Description                        |
+| -------------- | ------- | -------- | ---------------------------------- |
+| `title`        | string  | ✅       | Post title                         |
+| `date`         | date    | ✅       | Publication date                   |
+| `tags`         | list    | -        | Array of tags                      |
+| `lastmod`      | date    | -        | Last modified date                 |
+| `draft`        | boolean | -        | Draft status, hidden in production |
+| `summary`      | string  | -        | Post summary                       |
+| `images`       | json    | -        | Cover image array                  |
+| `authors`      | list    | -        | Author list                        |
+| `layout`       | string  | -        | Layout type                        |
+| `bibliography` | string  | -        | Bibliography file path             |
+| `canonicalUrl` | string  | -        | Canonical URL for SEO              |
+
+### Example
+
+```yaml
+---
+title: My Post Title
+date: 2025-12-25
+tags: [AI, Coding]
+lastmod: 2025-12-26
+draft: false
+summary: This is a sample post
+images: ['/static/images/cover.jpg']
+authors: ['default']
+layout: PostLayout
+---
+```
+
+## Draft Feature
+
+Set `draft: true` in frontmatter to mark a post as draft:
+
+```yaml
+---
+title: Draft Article
+date: 2025-12-25
+draft: true
+---
+```
+
+- **Development** (`bun dev`): Drafts are visible
+- **Production** (`bun run build`): Drafts are automatically excluded
+
+## Series Posts (Nested Routing)
+
+Organize series posts using nested folders:
+
+```
+data/blog/
+└── my-series/
+    ├── part-1-intro.mdx      # /blog/my-series/part-1-intro
+    ├── part-2-deep-dive.mdx  # /blog/my-series/part-2-deep-dive
+    └── part-3-conclusion.mdx # /blog/my-series/part-3-conclusion
+```
+
+Posts in the same folder are sorted by date automatically.
 
 ## Architecture
 
 ### Content Management with Contentlayer2
 
-Content is managed through Contentlayer2 with schemas defined in `contentlayer.config.ts`. Blog posts are stored as MDX files in `data/blog/` and automatically processed into TypeScript types in `.contentlayer/generated/`.
+Content managed through Contentlayer2 with schemas in `contentlayer.config.ts`. Posts stored as MDX files in `data/blog/` and processed into TypeScript types in `.contentlayer/generated/`.
 
-**Key content sources:**
+**Content sources:**
 
-- Blog posts: `data/blog/**/*.mdx`
+- Blog posts: `data/blog/**/*.mdx` (organized by locale: `en/`, `zh/`)
 - Author profiles: `data/authors/**/*.mdx`
 
-**Contentlayer processing pipeline:**
+**Processing pipeline:**
 
-- Remark plugins: frontmatter extraction, GFM, code titles, math (KaTeX), image-to-JSX, GitHub alerts
-- Rehype plugins: heading slugs, autolink, KaTeX rendering, citations, Prism syntax highlighting
-
-The post-build script (`scripts/postbuild.mjs`) generates RSS feeds and tag data after Next.js build completes.
+- Remark: frontmatter, GFM, code titles, math (KaTeX), image-to-JSX, GitHub alerts
+- Rehype: heading slugs, autolink, KaTeX, citations, Prism syntax highlighting
 
 ### Next.js App Router Structure
 
-All pages use the App Router in the `app/` directory:
+All pages in `app/` directory:
 
-- Dynamic blog routes: `app/blog/[...slug]/page.tsx` (catch-all for nested routes)
-- Tag pages with pagination: `app/tags/[tag]/page/[page]/page.tsx`
-- Static generation: `generateStaticParams()` pre-renders all content at build time
-- Draft posts are excluded from production builds when `draft: true` in frontmatter
+- Dynamic routes: `app/blog/[...slug]/page.tsx` (catch-all for nested routes)
+- Tag pages: `app/tags/[tag]/page/[page]/page.tsx`
+- Static generation via `generateStaticParams()`
+- Draft posts excluded in production when `draft: true`
 
 ### Layout System
 
-Blog posts use different layouts based on the `layout` frontmatter field (defaults to `PostLayout`):
+Layouts defined by `layout` frontmatter field:
 
-- `PostLayout`: Default 2-column layout with sidebar (metadata, author info, TOC)
+- `PostLayout`: Default 2-column layout with sidebar
 - `PostSimple`: Single-column simplified layout
 - `PostBanner`: Full-width with banner image
 
-Listing pages:
-
-- `ListLayoutWithTags`: Blog listing with tag sidebar (v2 default)
-- `ListLayout`: Blog listing with search functionality (v1)
-
-Layout selection happens in `app/blog/[...slug]/page.tsx`.
-
-### MDX Component System
-
-Custom components can be used directly in MDX files. Component mappings are in `components/MDXComponents.tsx`. The system integrates with Pliny's `MDXLayoutRenderer` for rendering.
-
-Available MDX components include: Image, CustomLink, TableWrapper, TOCInline, Pre, BlogNewsletterForm.
-
 ### Site Configuration
 
-All site-wide configuration is centralized in `data/siteMetadata.js`, including:
+All site configuration in `data/siteMetadata.js`:
 
-- Basic metadata (title, author, description, language)
+- Basic metadata (title, author, description)
 - Social links (GitHub, Twitter/X, LinkedIn, etc.)
-- Analytics providers (Umami, Plausible, PostHog, Google Analytics)
-- Comment systems (Giscus, Utterances, Disqus)
-- Newsletter providers (Mailchimp, Buttondown, ConvertKit, etc.)
-- Search options (Kbar command palette or Algolia)
-
-Environment variables for sensitive data (API keys) are defined in `.env.example` and loaded at runtime.
-
-### Pliny Integration
-
-The `pliny` package (v0.4.1) provides cross-cutting functionality:
-
-- Analytics with multi-provider support
+- Analytics (Umami, Plausible, PostHog, Google Analytics)
+- Comments (Giscus, Utterances, Disqus)
+- Newsletter (Mailchimp, Buttondown, ConvertKit, etc.)
 - Search (Kbar or Algolia)
-- Comments with multiple backends
-- Newsletter forms
-- Utilities: `sortPosts`, `coreContent`, `allCoreContent`, date formatting
-- Contentlayer helpers and MDX components
 
-### Styling System
+## Directory Structure
 
-Uses Tailwind CSS v4 with the new `@import` and `@theme` syntax (configured in `css/tailwind.css`):
-
-- Color system: OKLCH-based with primary (red/pink) and gray palettes
-- Dark mode: `next-themes` provider with class-based targeting via `@custom-variant dark`
-- Font: Space Grotesk via `next/font/google`
-- Custom components are styled using Tailwind utilities
-- Prettier plugin sorts Tailwind classes automatically
-
-## Content Frontmatter
-
-### Blog Post Frontmatter
-
-```yaml
-title (required)
-date (required)
-tags (optional, array)
-lastmod (optional)
-draft (optional, boolean)
-summary (optional)
-images (optional, array or string)
-authors (optional, array - defaults to 'default')
-layout (optional - defaults to 'PostLayout')
-canonicalUrl (optional)
-bibliography (optional, for citations)
 ```
-
-### Author Frontmatter
-
-```yaml
-name (required)
-avatar (optional)
-occupation (optional)
-company (optional)
-email (optional)
-twitter (optional)
-linkedin (optional)
-github (optional)
-bluesky (optional)
+├── app/                    # Next.js App Router pages
+├── components/            # React components
+├── contentlayer.config.ts # Contentlayer configuration
+├── css/tailwind.css       # Tailwind CSS v4 config
+├── data/
+│   ├── blog/             # Posts (en/, zh/)
+│   ├── authors/          # Author configurations
+│   ├── siteMetadata.js   # Site metadata
+│   └── projectsData.ts   # Projects data
+└── public/               # Static assets
 ```
-
-## Configuration Files
-
-- `contentlayer.config.ts`: Content schema and MDX processing pipeline
-- `next.config.js`: Next.js configuration with security headers, image domains
-- `tsconfig.json`: TypeScript configuration with path aliases (`@/components`, `@/data`, etc.)
-- `eslint.config.mjs`: ESLint flat config with TypeScript, a11y, and Next.js rules
-- `css/tailwind.css`: Tailwind v4 theme configuration
-- `data/headerNavLinks.ts`: Site navigation links
-- `data/projectsData.ts`: Projects page data
-
-## Deployment
-
-The project supports multiple deployment options:
-
-- **Vercel** (recommended): Zero-config deployment
-- **Netlify**: Next.js runtime support
-- **GitHub Pages**: Via `.github/workflows/pages.yml`
-- **Static export**: Set `EXPORT=1 UNOPTIMIZED=1` environment variables
-- **Docker**: See FAQ documentation
-
-## Git Hooks
-
-Uses Husky for pre-commit hooks with lint-staged:
-
-- JS/TS/TSX files: ESLint with auto-fix
-- JSON/CSS/MD/MDX files: Prettier formatting
 
 ## Important Notes
 
 ### i18n Content Structure
 
-Blog posts are organized by locale in the `data/blog/` directory:
-- English posts: `data/blog/en/**/*.mdx`
-- Chinese posts: `data/blog/zh/**/*.mdx`
+Blog posts organized by locale:
 
-The Contentlayer configuration extracts locale from the path (second segment) and adds it as a computed field. This allows filtering posts by locale in pages like `/app/[locale]/blog/page.tsx`.
+- English: `data/blog/en/**/*.mdx`
+- Chinese: `data/blog/zh/**/*.mdx`
+
+Locale extracted from path (second segment) as computed field.
 
 ### Turbopack Compatibility
 
 **Next.js 16+ is NOT compatible with Contentlayer2.** Next.js 16 uses Turbopack by default, which does not support `next-contentlayer2`.
 
-The project is downgraded to Next.js 15.x to maintain webpack support for Contentlayer2. If upgrading to Next.js 16, Contentlayer2 will fail to generate content and the build will error with "Module not found: Can't resolve 'contentlayer/generated'".
+The project uses Next.js 15.x to maintain webpack support for Contentlayer2.
