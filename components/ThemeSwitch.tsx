@@ -22,7 +22,7 @@ const Moon = () => (
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 20 20"
     fill="currentColor"
-    className="group-hover:text-gray-100 h-6 w-6 transition-transform duration-300 ease-in-out group-hover:-rotate-12"
+    className="h-6 w-6 transition-transform duration-300 ease-in-out group-hover:-rotate-12"
   >
     <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
   </svg>
@@ -55,8 +55,8 @@ const ThemeSwitch = () => {
     overlay.style.height = '0px'
     overlay.style.transform = 'translate(50%, -50%)' // Center at top-right
 
-    // Use white background with difference blend mode to invert colors underneath
-    // This creates the visual effect of switching to the opposite theme without covering the text
+    // Initial State: Use white background with difference blend mode
+    // This keeps content visible during the expansion phase
     overlay.style.backgroundColor = '#ffffff'
     overlay.style.mixBlendMode = 'difference'
 
@@ -75,11 +75,25 @@ const ThemeSwitch = () => {
     overlay.style.width = `${diameter}px`
     overlay.style.height = `${diameter}px`
 
-    // When expansion ends, switch theme and then fade out
+    // When expansion ends...
     setTimeout(() => {
+      // 1. Switch overlay to Normal mode and set it to the TARGET theme color.
+      // This covers the screen with the solid new background color, hiding the "jitter"
+      // that occurs when the underlying theme switches.
+      overlay.style.mixBlendMode = 'normal'
+      if (newTheme === 'dark') {
+         // Target is Dark: Use the dark gray color
+         overlay.style.backgroundColor = 'var(--color-gray-950, #030712)'
+      } else {
+         // Target is Light: Use white
+         overlay.style.backgroundColor = '#ffffff'
+      }
+
+      // 2. Switch the actual theme (underneath the overlay)
       setTheme(newTheme)
 
-      // Wait a tiny bit for React to update DOM (optional but safer)
+      // 3. Fade out the overlay to reveal the new theme
+      // Wait a tiny bit for React to update DOM
       setTimeout(() => {
         overlay.style.transition = `opacity ${fadeDuration}ms ease-out`
         overlay.style.opacity = '0'
