@@ -17,7 +17,9 @@ const extractText = (node: ReactNode): string => {
   if (typeof node === 'number') return String(node)
   if (Array.isArray(node)) return node.map(extractText).join('')
   if (isValidElement(node)) {
-    return extractText(node.props.children)
+    // Explicitly cast props to any to avoid "unknown" type error
+    const children = (node.props as any).children
+    return extractText(children)
   }
   return ''
 }

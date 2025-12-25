@@ -12,9 +12,7 @@ export default async function Page(props: { params: Promise<{ locale: string }> 
   const params = await props.params
   const { locale } = params
   const t = await getTranslations('tags')
-  const filteredBlogs = allBlogs.filter(
-    (post) => post.locale === locale && (process.env.NODE_ENV !== 'production' || !post.draft)
-  )
+  const filteredBlogs = allBlogs.filter((post) => post.locale === locale)
 
   // Build tag counts from filtered blogs
   const tagCounts: Record<string, number> = {}
