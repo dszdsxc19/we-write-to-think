@@ -98,7 +98,7 @@ export const TypewriterEffect = ({
           ease: "easeInOut"
         }}
         className={cn(
-          "inline-block rounded-sm w-[4px] h-4 sm:h-6 xl:h-12 bg-blue-500",
+          "inline-block rounded-sm w-[4px] h-4 bg-blue-500",
           cursorClassName
         )}
       ></motion.span>
