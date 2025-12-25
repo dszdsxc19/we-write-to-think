@@ -1,0 +1,91 @@
+---
+title: 'Mermaid Diagrams in MDX'
+date: '2023-01-02'
+tags: ['guide', 'mermaid', 'markdown']
+draft: false
+summary: 'A guide on how to use Mermaid diagrams in your blog posts.'
+---
+
+## Introduction
+
+We have added support for [Mermaid](https://mermaid.js.org/) diagrams in MDX files. This allows you to create diagrams and visualizations using text and code.
+
+## Usage
+
+To add a Mermaid diagram, simply use a code block with the language set to `mermaid`.
+
+### Flowchart
+
+```mermaid
+graph TD;
+    A[Start] --> B{Is it working?};
+    B -- Yes --> C[Great!];
+    B -- No --> D[Debug];
+    D --> B;
+```
+
+**Code:**
+
+````markdown
+```mermaid
+graph TD;
+    A[Start] --> B{Is it working?};
+    B -- Yes --> C[Great!];
+    B -- No --> D[Debug];
+    D --> B;
+```
+````
+
+### Sequence Diagram
+
+```mermaid
+sequenceDiagram
+    participant Alice
+    participant Bob
+    Alice->>John: Hello John, how are you?
+    loop Healthcheck
+        John->>John: Fight against hypochondria
+    end
+    Note right of John: Rational thoughts <br/>prevail!
+    John-->>Alice: Great!
+    John->>Bob: How about you?
+    Bob-->>John: Jolly good!
+```
+
+**Code:**
+
+````markdown
+```mermaid
+sequenceDiagram
+    participant Alice
+    participant Bob
+    Alice->>John: Hello John, how are you?
+    loop Healthcheck
+        John->>John: Fight against hypochondria
+    end
+    Note right of John: Rational thoughts <br/>prevail!
+    John-->>Alice: Great!
+    John->>Bob: How about you?
+    Bob-->>John: Jolly good!
+```
+````
+
+### Pie Chart
+
+```mermaid
+pie title Pets adopted by volunteers
+    "Dogs" : 386
+    "Cats" : 85
+    "Rats" : 15
+```
+
+**Code:**
+
+````markdown
+```mermaid
+pie title Pets adopted by volunteers
+    "Dogs" : 386
+    "Cats" : 85
+    "Rats" : 15
+```
+````
