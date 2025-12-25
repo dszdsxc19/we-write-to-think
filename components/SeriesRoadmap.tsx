@@ -107,7 +107,7 @@ export default function SeriesRoadmap({ series, currentPostSlug, posts }: Series
                     initial={{ pathLength: 0 }}
                     animate={{ pathLength: 1 }}
                     transition={{
-                      duration: 2,
+                      duration: Math.max(2, seriesPosts.length * 0.2),
                       ease: 'easeInOut',
                       repeat: Infinity,
                       repeatType: 'loop',
