@@ -28,9 +28,6 @@ export async function generateMetadata(props: {
   const { locale, ...rest } = params
   const slug = decodeURI(rest.slug.join('/'))
   const post = allBlogs.find((p) => p.slug === slug && p.locale === locale)
-  if (post && post.draft === true && process.env.NODE_ENV === 'production') {
-    return
-  }
   const authorList = post?.authors || ['default']
   const authorDetails = authorList.map((author) => {
     const authorResults = allAuthors.find((p) => p.slug === author && p.locale === locale)
@@ -78,8 +75,7 @@ export async function generateMetadata(props: {
 }
 
 export const generateStaticParams = async () => {
-  const posts = allBlogs.filter((p) => process.env.NODE_ENV !== 'production' || !p.draft)
-  return posts.map((p) => ({
+  return allBlogs.map((p) => ({
     locale: p.locale,
     slug: p.slug.split('/').map((name) => decodeURI(name)),
   }))
@@ -91,11 +87,7 @@ export default async function Page(props: { params: Promise<{ locale: string; sl
   const slug = decodeURI(rest.slug.join('/'))
   // Filter out drafts in production and filter by locale
   const sortedCoreContents = allCoreContent(
-    sortPosts(
-      allBlogs.filter(
-        (post) => post.locale === locale && (process.env.NODE_ENV !== 'production' || !post.draft)
-      )
-    )
+    sortPosts(allBlogs.filter((post) => post.locale === locale))
   )
   const postIndex = sortedCoreContents.findIndex((p) => p.slug === slug)
   if (postIndex === -1) {

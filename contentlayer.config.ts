@@ -220,8 +220,7 @@ export default makeSource({
   },
   onSuccess: async (importData) => {
     const { allBlogs } = await importData()
-    const validBlogs = allBlogs.filter((file) => !isProduction || !file.draft)
-    createTagCount(validBlogs)
-    createSearchIndex(validBlogs)
+    createTagCount(allBlogs)
+    createSearchIndex(allBlogs)
   },
 })
