@@ -15,7 +15,13 @@ export const generateStaticParams = async () => {
 export default async function Page(props: { params: Promise<{ locale: string; page: string }> }) {
   const params = await props.params
   const { locale } = params
-  const posts = allCoreContent(sortPosts(allBlogs.filter((post) => post.locale === locale)))
+  const posts = allCoreContent(
+    sortPosts(
+      allBlogs.filter(
+        (post) => post.locale === locale && (process.env.NODE_ENV !== 'production' || !post.draft)
+      )
+    )
+  )
   const pageNumber = parseInt(params.page as string)
   const totalPages = Math.ceil(posts.length / POSTS_PER_PAGE)
 
