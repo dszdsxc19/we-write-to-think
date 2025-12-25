@@ -8,7 +8,7 @@ const Sun = () => (
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 20 20"
     fill="currentColor"
-    className="group-hover:text-gray-100 group-hover:rotate-90 h-6 w-6 transition-transform duration-300"
+    className="h-6 w-6 transition-transform duration-300 group-hover:rotate-90 group-hover:text-gray-100"
   >
     <path
       fillRule="evenodd"
@@ -104,15 +104,15 @@ const ThemeSwitch = () => {
 
         // 2. Wait a tick for theme to apply, then fade out
         setTimeout(() => {
-           overlay.style.transition = `opacity ${fadeDuration}ms ease-out`
-           overlay.style.opacity = '0'
+          overlay.style.transition = `opacity ${fadeDuration}ms ease-out`
+          overlay.style.opacity = '0'
 
-           // Remove after fade
-           setTimeout(() => {
-             if (overlay.parentNode) {
-               overlay.parentNode.removeChild(overlay)
-             }
-           }, fadeDuration)
+          // Remove after fade
+          setTimeout(() => {
+            if (overlay.parentNode) {
+              overlay.parentNode.removeChild(overlay)
+            }
+          }, fadeDuration)
         }, 50)
       }
     }
