@@ -6,6 +6,38 @@ tags: [Claude Code, AI, 教程]
 
 ## Claude Code 接入非官方模型教程
 
+```mermaid
+sequenceDiagram
+    participant User
+    participant Obsidian as Obsidian/VSCode
+    participant Git as Git Repo
+    participant Action as GitHub Actions (Agent)
+    participant Web as Next.js Web
+
+    User->>Obsidian: 快速写入 (Inbox)
+    Obsidian->>Git: Sync (Auto-commit plugin)
+
+    rect rgb(240, 240, 240)
+        Note over Git, Action: Async Processing
+        Git->>Action: Trigger "Gardener" Workflow
+        Action->>Action: 1. 验证 Frontmatter 格式
+        Action->>Action: 2. 提取财务数据 -> 生成报表 JSON (Cache)
+        Action->>Action: 3. 生成全文索引 (Pagefind)
+        Action->>Git: Commit 索引和缓存数据
+    end
+
+    Git->>Web: Deploy
+    Web->>User: 展示可视化仪表盘
+```
+
+```mermaid
+graph TD;
+    A-->B;
+    A-->C;
+    B-->D;
+    C-->D;
+```
+
 ### 开始之前：你真的需要这些配置吗？
 
 从**第一性原理**思考：使用工具的目的是**创造价值**。

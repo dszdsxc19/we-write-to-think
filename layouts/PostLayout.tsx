@@ -13,6 +13,7 @@ import siteMetadata from '@/data/siteMetadata'
 import ScrollTopAndComment from '@/components/ScrollTopAndComment'
 import { useTranslations } from 'next-intl'
 import TableOfContents from '@/components/TableOfContents'
+import MermaidLoader from '@/components/MermaidLoader'
 
 const editUrl = (path) => `${siteMetadata.siteRepo}/blob/main/data/${path}`
 const discussUrl = (path) =>
@@ -48,6 +49,7 @@ export default function PostLayout({
 
   return (
     <SectionContainer>
+      <MermaidLoader />
       <ScrollTopAndComment />
       <article>
         <div className="xl:divide-y xl:divide-gray-200 xl:dark:divide-gray-700">
