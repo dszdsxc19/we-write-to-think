@@ -1,5 +1,6 @@
 'use client'
 
+import { useMemo } from 'react'
 import { usePathname } from '@/navigation'
 import { slug } from 'github-slugger'
 import { formatDate } from 'pliny/utils/formatDate'
@@ -78,8 +79,10 @@ export default function ListLayoutWithTags({
   const pathname = usePathname()
   const t = useTranslations('listLayout')
   const tagCounts = tagData as Record<string, number>
-  const tagKeys = Object.keys(tagCounts)
-  const sortedTags = tagKeys.sort((a, b) => tagCounts[b] - tagCounts[a])
+  const sortedTags = useMemo(() => {
+    const tagKeys = Object.keys(tagCounts)
+    return tagKeys.sort((a, b) => tagCounts[b] - tagCounts[a])
+  }, [tagCounts])
 
   const displayPosts = initialDisplayPosts.length > 0 ? initialDisplayPosts : posts
 
