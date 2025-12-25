@@ -1,24 +1,14 @@
 'use client'
 
-import { Fragment, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTheme } from 'next-themes'
-import {
-  Menu,
-  MenuButton,
-  MenuItem,
-  MenuItems,
-  Radio,
-  RadioGroup,
-  Transition,
-} from '@headlessui/react'
-import { useTranslations } from 'next-intl'
 
 const Sun = () => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 20 20"
     fill="currentColor"
-    className="group:hover:text-gray-100 h-6 w-6"
+    className="group-hover:text-gray-100 group-hover:rotate-90 h-6 w-6 transition-transform duration-300"
   >
     <path
       fillRule="evenodd"
@@ -32,109 +22,117 @@ const Moon = () => (
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 20 20"
     fill="currentColor"
-    className="group:hover:text-gray-100 h-6 w-6"
+    className="h-6 w-6 transition-transform duration-300 ease-in-out group-hover:-rotate-12"
   >
     <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
   </svg>
 )
-const Monitor = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 20 20"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className="group:hover:text-gray-100 h-6 w-6"
-  >
-    <rect x="3" y="3" width="14" height="10" rx="2" ry="2"></rect>
-    <line x1="7" y1="17" x2="13" y2="17"></line>
-    <line x1="10" y1="13" x2="10" y2="17"></line>
-  </svg>
-)
-const Blank = () => <svg className="h-6 w-6" />
 
 const ThemeSwitch = () => {
   const [mounted, setMounted] = useState(false)
   const { theme, setTheme, resolvedTheme } = useTheme()
-  const t = useTranslations('theme')
 
   // When mounted on client, now we can show the UI
   useEffect(() => setMounted(true), [])
 
+  const toggleTheme = () => {
+    const newTheme = resolvedTheme === 'dark' ? 'light' : 'dark'
+
+    // Animation logic
+    const duration = 500 // 0.5s expansion
+    const fadeDuration = 300 // 0.3s fade out
+
+    const overlay = document.createElement('div')
+
+    // Style the overlay
+    overlay.style.position = 'fixed'
+    overlay.style.top = '0'
+    overlay.style.right = '0'
+    overlay.style.width = '100vw'
+    overlay.style.height = '100vh'
+    overlay.style.zIndex = '9999' // Cover everything
+    overlay.style.pointerEvents = 'none' // Don't block clicks during fade out (though we remove it)
+
+    // Set solid background color based on target theme
+    // We use a solid color to prevent color overlapping artifacts and flickering
+    if (newTheme === 'dark') {
+      overlay.style.backgroundColor = 'var(--color-gray-950, #030712)'
+    } else {
+      overlay.style.backgroundColor = '#ffffff'
+    }
+
+    // Initial mask state: Fully transparent (circle radius 0)
+    // We use mask-image to create a soft-edged expanding circle
+    const startRadius = 0
+    // Calculate radius to cover the screen from top-right to bottom-left
+    // Add extra buffer for the gradient edge
+    const maxRadius = Math.hypot(window.innerWidth, window.innerHeight) + 50
+
+    // Helper to set mask
+    const setMask = (radius: number) => {
+      const gradient = `radial-gradient(circle at top right, black ${radius}px, transparent ${radius + 50}px)`
+      overlay.style.maskImage = gradient
+      overlay.style.webkitMaskImage = gradient
+    }
+
+    setMask(startRadius)
+    document.body.appendChild(overlay)
+
+    // Force reflow
+    void overlay.offsetHeight
+
+    // Animation Loop
+    const startTime = performance.now()
+
+    const animate = (currentTime: number) => {
+      const elapsed = currentTime - startTime
+      const progress = Math.min(elapsed / duration, 1)
+
+      // Easing function (ease-in-out ish)
+      const ease = progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2
+
+      const currentRadius = startRadius + (maxRadius - startRadius) * ease
+      setMask(currentRadius)
+
+      if (progress < 1) {
+        requestAnimationFrame(animate)
+      } else {
+        // Animation Complete: Overlay covers screen
+
+        // 1. Switch Theme
+        setTheme(newTheme)
+
+        // 2. Wait a tick for theme to apply, then fade out
+        setTimeout(() => {
+           overlay.style.transition = `opacity ${fadeDuration}ms ease-out`
+           overlay.style.opacity = '0'
+
+           // Remove after fade
+           setTimeout(() => {
+             if (overlay.parentNode) {
+               overlay.parentNode.removeChild(overlay)
+             }
+           }, fadeDuration)
+        }, 50)
+      }
+    }
+
+    requestAnimationFrame(animate)
+  }
+
+  if (!mounted) {
+    return null
+  }
+
   return (
-    <div className="flex items-center">
-      <Menu as="div" className="relative inline-block text-left">
-        <div className="hover:text-primary-500 dark:hover:text-primary-400 flex items-center justify-center">
-          <MenuButton aria-label="Theme switcher">
-            {mounted ? resolvedTheme === 'dark' ? <Moon /> : <Sun /> : <Blank />}
-          </MenuButton>
-        </div>
-        <Transition
-          as={Fragment}
-          enter="transition ease-out duration-100"
-          enterFrom="transform opacity-0 scale-95"
-          enterTo="transform opacity-100 scale-100"
-          leave="transition ease-in duration-75"
-          leaveFrom="transform opacity-100 scale-100"
-          leaveTo="transform opacity-0 scale-95"
-        >
-          <MenuItems className="ring-opacity-5 absolute right-0 z-50 mt-2 w-32 origin-top-right divide-y divide-gray-100 rounded-md bg-white shadow-lg ring-1 ring-black focus:outline-hidden dark:bg-gray-800">
-            <RadioGroup value={theme} onChange={setTheme}>
-              <div className="p-1">
-                <Radio value="light">
-                  <MenuItem>
-                    {({ focus }) => (
-                      <button
-                        className={`${focus ? 'bg-primary-600 text-white' : ''} group flex w-full items-center rounded-md px-2 py-2 text-sm`}
-                      >
-                        <div className="mr-2">
-                          <Sun />
-                        </div>
-                        {t('light')}
-                      </button>
-                    )}
-                  </MenuItem>
-                </Radio>
-                <Radio value="dark">
-                  <MenuItem>
-                    {({ focus }) => (
-                      <button
-                        className={`${
-                          focus ? 'bg-primary-600 text-white' : ''
-                        } group flex w-full items-center rounded-md px-2 py-2 text-sm`}
-                      >
-                        <div className="mr-2">
-                          <Moon />
-                        </div>
-                        {t('dark')}
-                      </button>
-                    )}
-                  </MenuItem>
-                </Radio>
-                <Radio value="system">
-                  <MenuItem>
-                    {({ focus }) => (
-                      <button
-                        className={`${
-                          focus ? 'bg-primary-600 text-white' : ''
-                        } group flex w-full items-center rounded-md px-2 py-2 text-sm`}
-                      >
-                        <div className="mr-2">
-                          <Monitor />
-                        </div>
-                        {t('system')}
-                      </button>
-                    )}
-                  </MenuItem>
-                </Radio>
-              </div>
-            </RadioGroup>
-          </MenuItems>
-        </Transition>
-      </Menu>
-    </div>
+    <button
+      aria-label="Toggle Dark Mode"
+      type="button"
+      className="group mr-1 ml-1 h-8 w-8 rounded-full p-1 sm:ml-4"
+      onClick={toggleTheme}
+    >
+      {resolvedTheme === 'dark' ? <Sun /> : <Moon />}
+    </button>
   )
 }
 
