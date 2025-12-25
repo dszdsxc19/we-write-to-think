@@ -48,7 +48,6 @@ export default function PostLayout({
 
   return (
     <SectionContainer>
-      {toc && <TableOfContents toc={toc} />}
       <ScrollTopAndComment />
       <article>
         <div className="xl:divide-y xl:divide-gray-200 xl:dark:divide-gray-700">
@@ -172,10 +171,18 @@ export default function PostLayout({
                   href={`/${basePath}`}
                   className="text-primary-500 hover:text-primary-600 dark:hover:text-primary-400"
                   aria-label="Back to the blog"
+                  id="back-to-blog"
                 >
                   &larr; {t('backToBlog')}
                 </Link>
               </div>
+              {toc && (
+                <TableOfContents
+                  toc={toc}
+                  triggerId="back-to-blog"
+                  className="mt-8 hidden xl:block"
+                />
+              )}
             </footer>
           </div>
         </div>

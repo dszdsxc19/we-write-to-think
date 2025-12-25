@@ -30,11 +30,7 @@ export default async function TagPage(props: {
   const filteredPosts = allCoreContent(
     sortPosts(
       allBlogs.filter(
-        (post) =>
-          post.locale === locale &&
-          (process.env.NODE_ENV !== 'production' || !post.draft) &&
-          post.tags &&
-          post.tags.map((t) => slug(t)).includes(tag)
+        (post) => post.locale === locale && post.tags && post.tags.map((t) => slug(t)).includes(tag)
       )
     )
   )
