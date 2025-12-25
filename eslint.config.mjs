@@ -14,7 +14,7 @@ const compat = new FlatCompat({
 
 export default [
   {
-    ignores: ['next.config.js'],
+    ignores: ['next.config.js', 'data/blog/.obsidian', 'data/blog/.obsidian/**'],
   },
   js.configs.recommended,
   ...compat.extends(

@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Clippings/From Text to Token How Tokenization Pipelines Work.md",
+                "file": "en/nested-route/introducing-multi-part-posts-with-nested-routing.mdx",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "From Text to Token How Tokenization Pipelines Work"
+              "title": "introducing-multi-part-posts-with-nested-routing"
             }
           }
         ]
@@ -185,6 +185,14 @@
   },
   "active": "cfdf53a9a0c49b00",
   "lastOpenFiles": [
+    "en/code-sample.mdx",
+    "zh/agentic-development/agentic-coding-tool-journey.mdx",
+    "zh/docs-as-script.mdx",
+    "zh/llm-base/tokenize-in-llm-and-search.mdx",
+    "zh/agentic-development/claude-code-installation.mdx",
+    "zh/agentic-development/claude-code-setup.mdx",
+    "en/nested-route/introducing-multi-part-posts-with-nested-routing.mdx",
+    "zh/modern-local-development-kit.mdx",
     "Clippings/From Text to Token How Tokenization Pipelines Work.md",
     "Clippings/用户信息查询.md",
     "Welcome.md",
