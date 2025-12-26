@@ -148,6 +148,8 @@ export const Blog = defineDocumentType(() => ({
     layout: { type: 'string' },
     bibliography: { type: 'string' },
     canonicalUrl: { type: 'string' },
+    series: { type: 'string' },
+    step: { type: 'number' },
   },
   computedFields: {
     ...computedFields,
