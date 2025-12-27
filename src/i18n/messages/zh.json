@@ -131,5 +131,9 @@
     "previousArticle": "上一篇",
     "nextArticle": "下一篇",
     "backToBlog": "返回博客"
+  },
+  "deprecated": {
+    "label": "已过时",
+    "warning": "此文章内容可能已过时，请谨慎参考"
   }
 }

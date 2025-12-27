@@ -8,6 +8,7 @@ import Comments from '@/components/Comments'
 import { Link } from '@/navigation'
 import PageTitle from '@/components/PageTitle'
 import SectionContainer from '@/components/SectionContainer'
+import DeprecatedBadge from '@/components/DeprecatedBadge'
 import siteMetadata from '@/data/siteMetadata'
 import ScrollTopAndComment from '@/components/ScrollTopAndComment'
 import { useTranslations } from 'next-intl'
@@ -22,7 +23,7 @@ interface LayoutProps {
 
 export default function PostLayout({ content, next, prev, children }: LayoutProps) {
   const t = useTranslations('postSimple')
-  const { path, slug, date, title } = content
+  const { path, slug, date, title, deprecated } = content
   const params = useParams()
   const locale = params.locale as string
 
@@ -44,6 +45,11 @@ export default function PostLayout({ content, next, prev, children }: LayoutProp
               <div>
                 <PageTitle>{title}</PageTitle>
               </div>
+              {deprecated && (
+                <div className="mt-4 flex justify-center">
+                  <DeprecatedBadge showWarning />
+                </div>
+              )}
             </div>
           </header>
           <div className="grid-rows-[auto_1fr] divide-y divide-gray-200 pb-8 xl:divide-y-0 dark:divide-gray-700">

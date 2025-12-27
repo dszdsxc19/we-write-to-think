@@ -8,6 +8,7 @@ import { CoreContent } from 'pliny/utils/contentlayer'
 import type { Blog } from 'contentlayer/generated'
 import { Link } from '@/navigation'
 import Tag from '@/components/Tag'
+import DeprecatedBadge from '@/components/DeprecatedBadge'
 import siteMetadata from '@/data/siteMetadata'
 import tagData from 'app/tag-data.json'
 import { useTranslations } from 'next-intl'
@@ -133,7 +134,7 @@ export default function ListLayoutWithTags({
           <div>
             <ul>
               {displayPosts.map((post) => {
-                const { path, slug, date, title, summary, tags } = post
+                const { path, slug, date, title, summary, tags, deprecated } = post
                 // Use relative path without locale prefix - @/navigation Link handles locale automatically
                 const postHref = `/blog/${slug}`
                 return (
@@ -148,21 +149,22 @@ export default function ListLayoutWithTags({
                         </dd>
                       </dl>
                       <div className="space-y-3">
-                        <div>
+                        <div className="flex flex-wrap items-center gap-2">
                           <h2 className="text-2xl leading-8 font-bold tracking-tight">
                             <Link href={postHref} className="text-gray-900 dark:text-gray-100">
                               {title}
                             </Link>
                           </h2>
-                          <div className="flex flex-wrap">
-                            {tags?.map((tag) => (
-                              <Tag key={tag} text={tag} />
-                            ))}
-                          </div>
+                          {deprecated && <DeprecatedBadge />}
                         </div>
-                        <div className="prose max-w-none text-gray-500 dark:text-gray-400">
-                          {summary}
+                        <div className="flex flex-wrap">
+                          {tags?.map((tag) => (
+                            <Tag key={tag} text={tag} />
+                          ))}
                         </div>
+                      </div>
+                      <div className="prose max-w-none text-gray-500 dark:text-gray-400">
+                        {summary}
                       </div>
                     </article>
                   </li>

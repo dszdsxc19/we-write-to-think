@@ -9,6 +9,7 @@ import PageTitle from '@/components/PageTitle'
 import SectionContainer from '@/components/SectionContainer'
 import Image from '@/components/Image'
 import Tag from '@/components/Tag'
+import DeprecatedBadge from '@/components/DeprecatedBadge'
 import siteMetadata from '@/data/siteMetadata'
 import ScrollTopAndComment from '@/components/ScrollTopAndComment'
 import { useTranslations } from 'next-intl'
@@ -42,7 +43,7 @@ export default function PostLayout({
   posts,
 }: LayoutProps) {
   const t = useTranslations('postLayout')
-  const { filePath, path, slug, date, title, tags } = content
+  const { filePath, path, slug, date, title, tags, deprecated } = content
   const basePath = path.split('/')[0]
   const params = useParams()
   const locale = params.locale as string
@@ -66,6 +67,11 @@ export default function PostLayout({
               <div>
                 <PageTitle>{title}</PageTitle>
               </div>
+              {deprecated && (
+                <div className="mt-4">
+                  <DeprecatedBadge showWarning />
+                </div>
+              )}
               {content.series && posts && (
                 <div className="flex justify-center pt-4">
                   <SeriesRoadmap

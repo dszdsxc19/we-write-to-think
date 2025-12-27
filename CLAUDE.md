@@ -34,6 +34,7 @@ bun run lint         # Lint and auto-fix code
 | `canonicalUrl` | string  | -        | Canonical URL for SEO                |
 | `series`       | string  | -        | Series name for roadmap              |
 | `step`         | number  | -        | Step number in series (for ordering) |
+| `deprecated`   | boolean | -        | Mark post as deprecated/outdated     |
 
 ### Example
 
@@ -267,6 +268,33 @@ descriptions: [
   '分享即学习 - Sharing is learning',
 ]
 ````
+
+### Deprecated Posts
+
+Mark posts as outdated/deprecated with visual indicators:
+
+**Component** (`components/DeprecatedBadge.tsx`):
+
+- Amber-colored badge with warning icon
+- i18n support: "已过时" (zh) / "Deprecated" (en)
+- Optional warning text for article pages
+- Dark mode support
+- Responsive design
+
+**Usage** (`data/blog/**/*.mdx`):
+
+```yaml
+---
+title: Legacy Article
+date: 2023-01-01
+deprecated: true
+---
+```
+
+**Display Locations**:
+
+- **List pages**: Badge next to post title
+- **Article pages**: Warning banner below title with explanatory text
 
 ### Mobile Navigation
 

@@ -131,5 +131,9 @@
     "previousArticle": "Previous Article",
     "nextArticle": "Next Article",
     "backToBlog": "Back to the blog"
+  },
+  "deprecated": {
+    "label": "Deprecated",
+    "warning": "This article may be outdated, please use with caution"
   }
 }
