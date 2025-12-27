@@ -15,6 +15,87 @@ bun run start        # Start production server
 bun run lint         # Lint and auto-fix code
 ```
 
+## Deployment Management
+
+### Install Vercel CLI
+
+```bash
+bun i -g vercel      # Install Vercel CLI globally
+vercel login         # Login to Vercel account
+```
+
+### Link Project
+
+Run in the project directory:
+
+```bash
+vercel link          # Link to existing Vercel project or create new one
+```
+
+### Environment Variables
+
+```bash
+# Pull environment variables from Vercel to local .env.local
+vercel env pull .env.local
+
+# Push local environment variables to Vercel
+vercel env add NEXT_PUBLIC_GISCUS_REPO
+```
+
+### Deployment Commands
+
+```bash
+vercel               # Deploy to Preview environment
+vercel --prod        # Deploy to Production environment
+```
+
+## Giscus Comment System
+
+Giscus is a comments system powered by GitHub Discussions.
+
+### Configuration Steps
+
+1. **Repository must be public** - Confirm repository Visibility is `Public`
+2. **Enable Discussions** - Go to repository `Settings → General → Features`, check "Discussions"
+3. **Install GitHub App** - Visit https://github.com/apps/giscus and install to your repository
+4. **Generate configuration** - Visit https://giscus.app, enter `owner/repo`, copy configuration details
+
+### Vercel Environment Variables
+
+Add the following environment variables in Vercel project settings:
+
+```env
+NEXT_PUBLIC_GISCUS_REPO=your-name/your-repo
+NEXT_PUBLIC_GISCUS_REPOSITORY_ID=R_kgDOGxxxxx
+NEXT_PUBLIC_GISCUS_CATEGORY=General
+NEXT_PUBLIC_GISCUS_CATEGORY_ID=DIC_kwDOGxxxxx4
+```
+
+For local development, add the same configuration to `.env.local` file (do not commit to repository).
+
+## Umami Analytics
+
+Umami is an open-source website analytics tool.
+
+### Configuration Steps
+
+1. **Create account** - Visit https://cloud.umami.is/setup to register Umami Cloud account
+2. **Add website** - Create new website in Umami dashboard, get website ID
+3. **Get tracking script** - Copy the tracking code provided by Umami
+
+### Vercel Environment Variables
+
+Add in Vercel project settings:
+
+```env
+NEXT_PUBLIC_UMAMI_DATA_WEBSITE_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+NEXT_PUBLIC_UMAMI_SRC=https://your-umami-instance.com/script.js
+```
+
+### Local Configuration
+
+Add the same configuration to `.env.local` for local development (do not commit to repository).
+
 ## Content Frontmatter
 
 ### Blog Post Fields

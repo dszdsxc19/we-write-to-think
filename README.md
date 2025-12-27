@@ -176,3 +176,84 @@ bun run build        # 生产构建
 bun run start        # 启动生产服务器
 bun run lint         # 代码检查
 ```
+
+## Vercel 部署管理
+
+### 安装 Vercel CLI
+
+```bash
+bun i -g vercel      # 全局安装 Vercel CLI
+vercel login         # 登录 Vercel 账号
+```
+
+### 关联项目
+
+在项目目录下运行：
+
+```bash
+vercel link          # 关联现有 Vercel 项目，或创建新项目
+```
+
+### 环境变量管理
+
+```bash
+# 从 Vercel 拉取环境变量到本地 .env.local
+vercel env pull .env.local
+
+# 推送本地环境变量到 Vercel
+vercel env add NEXT_PUBLIC_GISCUS_REPO
+```
+
+### 部署命令
+
+```bash
+vercel               # 部署到 Preview 环境
+vercel --prod        # 部署到 Production 环境
+```
+
+## Giscus 评论系统
+
+Giscus 是基于 GitHub Discussions 的评论系统。
+
+### 配置步骤
+
+1. **仓库必须公开** - 确认仓库 Visibility 为 `Public`
+2. **开启 Discussions** - 进入仓库 `Settings → General → Features`，勾选 "Discussions"
+3. **安装 GitHub App** - 访问 https://github.com/apps/giscus 安装到你的仓库
+4. **生成配置** - 访问 https://giscus.app/zh-CN，填入 `owner/repo`，复制配置信息
+
+### Vercel 环境变量
+
+在 Vercel 项目设置中添加以下环境变量：
+
+```env
+NEXT_PUBLIC_GISCUS_REPO=your-name/your-repo
+NEXT_PUBLIC_GISCUS_REPOSITORY_ID=R_kgDOGxxxxx
+NEXT_PUBLIC_GISCUS_CATEGORY=General
+NEXT_PUBLIC_GISCUS_CATEGORY_ID=DIC_kwDOGxxxxx4
+```
+
+本地开发时，可将相同配置添加到 `.env.local` 文件（勿提交到仓库）。
+
+## Umami 网站分析
+
+Umami 是开源的网站分析工具。
+
+### 配置步骤
+
+1. **创建账户** - 访问 https://cloud.umami.is/setup 注册 Umami Cloud 账户
+2. **添加网站** - 在 Umami 控制台创建新网站，获取网站 ID
+3. **获取跟踪脚本** - 复制 Umami 提供的跟踪代码
+
+### Vercel 环境变量
+
+在 Vercel 项目设置中添加：
+
+```env
+NEXT_PUBLIC_UMAMI_DATA_WEBSITE_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+NEXT_PUBLIC_UMAMI_SRC=https://your-umami-instance.com/script.js
+```
+
+### 本地配置
+
+将相同配置添加到 `.env.local` 文件用于本地开发（勿提交到仓库）。
