@@ -3,25 +3,25 @@ import { allCoreContent, sortPosts } from 'pliny/utils/contentlayer'
 import ListLayout from '@/layouts/ListLayoutWithTags'
 import { allBlogs } from 'contentlayer/generated'
 import { notFound } from 'next/navigation'
-import { readFileSync } from 'fs'
-import { join } from 'path'
 
 const POSTS_PER_PAGE = 5
 
-// Helper function to read tag data
-function getTagData(): Record<string, number> {
-  try {
-    const tagDataPath = join(process.cwd(), 'public', 'tag-data.json')
-    const tagDataContent = readFileSync(tagDataPath, 'utf-8')
-    return JSON.parse(tagDataContent) as Record<string, number>
-  } catch (e) {
-    console.warn('Failed to read tag-data.json:', e)
-    return {}
-  }
+// Get all unique tags with their post counts from allBlogs across all locales
+function getAllTagsWithCounts(): Record<string, number> {
+  const tagCounts: Record<string, number> = {}
+  allBlogs.forEach((post) => {
+    if (post.tags) {
+      post.tags.forEach((tag) => {
+        const tagSlug = slug(tag)
+        tagCounts[tagSlug] = (tagCounts[tagSlug] || 0) + 1
+      })
+    }
+  })
+  return tagCounts
 }
 
 export const generateStaticParams = async () => {
-  const tagCounts = getTagData()
+  const tagCounts = getAllTagsWithCounts()
   return Object.keys(tagCounts).flatMap((tag) => {
     const postCount = tagCounts[tag]
     const totalPages = Math.max(1, Math.ceil(postCount / POSTS_PER_PAGE))

@@ -5,22 +5,8 @@ import ListLayout from '@/layouts/ListLayoutWithTags'
 import { allBlogs } from 'contentlayer/generated'
 import { genPageMetadata } from 'app/seo'
 import { Metadata } from 'next'
-import { readFileSync } from 'fs'
-import { join } from 'path'
 
 const POSTS_PER_PAGE = 5
-
-// Helper function to read tag data
-function getTagData(): Record<string, number> {
-  try {
-    const tagDataPath = join(process.cwd(), 'public', 'tag-data.json')
-    const tagDataContent = readFileSync(tagDataPath, 'utf-8')
-    return JSON.parse(tagDataContent) as Record<string, number>
-  } catch (e) {
-    console.warn('Failed to read tag-data.json:', e)
-    return {}
-  }
-}
 
 export async function generateMetadata(props: {
   params: Promise<{ locale: string; tag: string }>
@@ -39,10 +25,22 @@ export async function generateMetadata(props: {
   })
 }
 
+// Get all unique tags from allBlogs across all locales
+function getAllTags(): string[] {
+  const tagSet = new Set<string>()
+  allBlogs.forEach((post) => {
+    if (post.tags) {
+      post.tags.forEach((tag) => {
+        tagSet.add(slug(tag))
+      })
+    }
+  })
+  return Array.from(tagSet)
+}
+
 export const generateStaticParams = async () => {
-  const tagCounts = getTagData()
-  const tagKeys = Object.keys(tagCounts)
-  return tagKeys.map((tag) => ({
+  const tags = getAllTags()
+  return tags.map((tag) => ({
     tag: encodeURI(tag),
   }))
 }
