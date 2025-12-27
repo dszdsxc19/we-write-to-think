@@ -7,6 +7,7 @@ import { Link } from '@/navigation'
 import MobileNav from './MobileNav'
 import ThemeSwitch from './ThemeSwitch'
 import SearchButton from './SearchButton'
+import LanguageSwitch from './LanguageSwitch'
 import { useTranslations } from 'next-intl'
 
 const Header = () => {
@@ -47,6 +48,7 @@ const Header = () => {
             ))}
         </div>
         <SearchButton />
+        <LanguageSwitch />
         <ThemeSwitch />
         <MobileNav />
       </div>

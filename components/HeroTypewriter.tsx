@@ -1,41 +1,76 @@
-"use client";
+'use client'
 
-import { useEffect, useState } from "react";
-import { TypewriterEffect } from "./ui/TypewriterEffect";
+import { useEffect, useRef } from 'react'
 
 interface HeroTypewriterProps {
-  descriptions: string[];
-  defaultDescription: string;
+  descriptions: string[]
+  defaultDescription: string
 }
 
 export function HeroTypewriter({ descriptions, defaultDescription }: HeroTypewriterProps) {
-  const [index, setIndex] = useState(0);
+  const textRef = useRef('')
+  const indexRef = useRef(0)
+  const isDeletingRef = useRef(false)
+  const isPausedRef = useRef(false)
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
 
-  // If no descriptions array, just use defaultDescription as a single item
-  const validDescriptions = descriptions && descriptions.length > 0 ? descriptions : [defaultDescription];
+  const validDescriptions =
+    descriptions && descriptions.length > 0 ? descriptions : [defaultDescription]
 
-  const currentText = validDescriptions[index];
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
 
-  const words = currentText.split(" ").map((word) => ({
-    text: word,
-  }));
+    const runTypewriter = () => {
+      const currentText = validDescriptions[indexRef.current]
 
-  const handleComplete = () => {
-    // Wait a bit before switching to the next description
-    setTimeout(() => {
-        setIndex((prev) => (prev + 1) % validDescriptions.length);
-    }, 2000); // 2 seconds delay
-  };
+      if (isPausedRef.current) {
+        timeoutRef.current = setTimeout(runTypewriter, 2000)
+        return
+      }
+
+      if (!isDeletingRef.current) {
+        // 打字中
+        if (textRef.current.length < currentText.length) {
+          textRef.current = currentText.slice(0, textRef.current.length + 1)
+          container.textContent = textRef.current
+          timeoutRef.current = setTimeout(runTypewriter, 100)
+        } else {
+          // 打完，暂停
+          isPausedRef.current = true
+          timeoutRef.current = setTimeout(() => {
+            isPausedRef.current = false
+            isDeletingRef.current = true
+            runTypewriter()
+          }, 2000)
+        }
+      } else {
+        // 删除中
+        if (textRef.current.length > 0) {
+          textRef.current = textRef.current.slice(0, -1)
+          container.textContent = textRef.current
+          timeoutRef.current = setTimeout(runTypewriter, 50)
+        } else {
+          // 删除完，切换到下一条
+          isDeletingRef.current = false
+          indexRef.current = (indexRef.current + 1) % validDescriptions.length
+          timeoutRef.current = setTimeout(runTypewriter, 500)
+        }
+      }
+    }
+
+    timeoutRef.current = setTimeout(runTypewriter, 500)
+
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    }
+  }, [validDescriptions])
 
   return (
-    <div className="flex justify-start items-center">
-       <TypewriterEffect
-          key={index} // Remount to restart animation
-          words={words}
-          className="text-lg leading-7 text-gray-500 dark:text-gray-400 font-normal text-left"
-          cursorClassName="bg-gray-500 dark:bg-gray-400 h-5 md:h-6 w-[2px]"
-          onComplete={validDescriptions.length > 1 ? handleComplete : undefined}
-       />
+    <div className="text-left text-lg leading-7 font-normal text-gray-500 dark:text-gray-400">
+      <span ref={containerRef}></span>
+      <span className="animate-blink ml-1 inline-block h-[1.125rem] w-[2px] bg-gray-500 align-middle md:h-[1.375rem] dark:bg-gray-400" />
     </div>
-  );
+  )
 }

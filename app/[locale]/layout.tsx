@@ -110,11 +110,11 @@ export default async function LocaleLayout({
       <link
         rel="mask-icon"
         href={`${basePath}/static/favicons/safari-pinned-tab.svg`}
-        color="#5bbad5"
+        color="#3b82f6"
       />
-      <meta name="msapplication-TileColor" content="#000000" />
-      <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fff" />
-      <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000" />
+      <meta name="msapplication-TileColor" content="#3b82f6" />
+      <meta name="theme-color" media="(prefers-color-scheme: light)" content="#3b82f6" />
+      <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1e3a8a" />
       <link rel="alternate" type="application/rss+xml" href={`${basePath}/feed.xml`} />
       <body className="bg-white pl-[calc(100vw-100%)] text-black antialiased dark:bg-gray-950 dark:text-white">
         <NextIntlClientProvider messages={messages}>

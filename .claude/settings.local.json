@@ -1,6 +1,11 @@
 {
   "permissions": {
-    "allow": ["WebFetch(domain:fonts.googleapis.com)", "WebFetch(domain:fonts.gstatic.com)"]
+    "allow": [
+      "WebFetch(domain:fonts.googleapis.com)",
+      "WebFetch(domain:fonts.gstatic.com)",
+      "WebFetch(domain:registry.npmjs.org)",
+      "WebFetch(domain:svg2png-api.vercel.app)"
+    ]
   },
   "sandbox": {
     "enabled": true,
