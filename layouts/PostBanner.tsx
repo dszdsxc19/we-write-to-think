@@ -11,6 +11,7 @@ import PageTitle from '@/components/PageTitle'
 import SectionContainer from '@/components/SectionContainer'
 import siteMetadata from '@/data/siteMetadata'
 import ScrollTopAndComment from '@/components/ScrollTopAndComment'
+import MermaidLoader from '@/components/MermaidLoader'
 import { useParams } from 'next/navigation'
 
 interface LayoutProps {
@@ -29,6 +30,7 @@ export default function PostMinimal({ content, next, prev, children }: LayoutPro
 
   return (
     <SectionContainer>
+      <MermaidLoader />
       <ScrollTopAndComment />
       <article>
         <div>
