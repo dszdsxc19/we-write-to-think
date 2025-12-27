@@ -10,8 +10,8 @@ import { Link } from '@/navigation'
 import Tag from '@/components/Tag'
 import DeprecatedBadge from '@/components/DeprecatedBadge'
 import siteMetadata from '@/data/siteMetadata'
-import tagData from 'app/tag-data.json'
 import { useTranslations } from 'next-intl'
+import tagData from '../public/tag-data.json'
 
 interface PaginationProps {
   totalPages: number

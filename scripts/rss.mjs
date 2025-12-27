@@ -1,11 +1,15 @@
-import { writeFileSync, mkdirSync } from 'fs'
+import { writeFileSync, mkdirSync, readFileSync } from 'fs'
 import path from 'path'
 import { slug } from 'github-slugger'
 import { escape } from 'pliny/utils/htmlEscaper.js'
 import siteMetadata from '../data/siteMetadata.js'
-import tagData from '../app/tag-data.json' with { type: 'json' }
 import { allBlogs } from '../.contentlayer/generated/index.mjs'
 import { sortPosts } from 'pliny/utils/contentlayer.js'
+
+// Read tag data from public directory
+const tagData = JSON.parse(
+  readFileSync(path.join(process.cwd(), 'public', 'tag-data.json'), 'utf-8')
+)
 
 const outputFolder = process.env.EXPORT ? 'out' : 'public'
 

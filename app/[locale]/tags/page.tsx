@@ -2,7 +2,6 @@ import Link from '@/components/Link'
 import Tag from '@/components/Tag'
 import { slug } from 'github-slugger'
 import { allBlogs } from 'contentlayer/generated'
-import tagData from 'app/tag-data.json'
 import { genPageMetadata } from 'app/seo'
 import { getTranslations } from 'next-intl/server'
 
