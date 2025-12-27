@@ -1,0 +1,126 @@
+---
+title: 'macOS 效率工具详解'
+date: '2025-12-27'
+tags: ['macos', 'productivity', 'tools']
+draft: false
+summary: '深度配置效率工具，充分发挥 macOS 生产力。'
+---
+
+# macOS 效率工具详解
+
+## 1. Raycast - 效率中枢
+
+> macOS 启动器，Alfred 的现代替代品。所有效率工具的核心。
+
+```bash
+brew install --cask raycast
+```
+
+### 为什么选择 Raycast
+
+- **免费开源**: 无付费订阅，无功能限制
+- **性能优先**: 原生 Swift 开发，启动极速
+- **生态丰富**: 700+ 扩展，集成主流工具
+- **工作流集成**: 自定义命令，API 调用，脚本支持
+
+### 核心扩展配置
+
+| 扩展                  | 功能                   | 快捷键      |
+| --------------------- | ---------------------- | ----------- |
+| **Window Management** | 窗口分屏、最大化、居中 | 自定义      |
+| **Clipboard History** | 剪贴板历史，支持搜索   | Cmd+Shift+V |
+| **Color Picker**      | 系统取色器             | Cmd+Shift+C |
+| **Emoji Search**      | 表情符号搜索           | Cmd+Shift+E |
+| **Quick Notes**       | 快速创建笔记           | Cmd+Shift+N |
+| **GitHub**            | 搜索仓库、PR、Issues   | Cmd+Shift+G |
+| **Terminal Notifier** | 命令完成通知           | -           |
+
+### 窗口管理扩展
+
+安装 `Window Management` 扩展后，Raycast 可以替代 Rectangle：
+
+```javascript
+// 自定义窗口管理命令
+// 将窗口移到左半屏
+applescript = `tell application "System Events"
+    tell application process "Safari"
+        set frontmost to true
+        set position of window 1 to {0, 0}
+        set size of window 1 to {960, 1080}
+    end tell
+end tell`
+```
+
+### 剪贴板历史扩展
+
+`Clipboard History` 扩展功能：
+
+- 自动记录剪贴板内容
+- 支持文本、图片、文件搜索
+- 固定常用内容
+- 快捷键粘贴
+
+### 自定义命令示例
+
+```javascript
+// 计算文件哈希
+#!/bin/bash
+FILE_PATH=$(osascript -e 'tell application "Finder" to get POSIX path of (insertion location as alias)')
+openssl sha256 "$FILE_PATH"
+```
+
+```javascript
+// Git 提交
+#!/bin/bash
+COMMIT_MSG="$1"
+git add -A && git commit -m "$COMMIT_MSG"
+```
+
+---
+
+## 2. 截图工具 - Shottr
+
+> 已安装，功能全面的截图工具。
+
+```bash
+brew install --cask shottr
+```
+
+### 快捷键配置
+
+| 快捷键        | 功能     |
+| ------------- | -------- |
+| `Cmd+Shift+2` | 区域截图 |
+| `Cmd+Shift+3` | 窗口截图 |
+| `Cmd+Shift+4` | 滚动截图 |
+
+### 功能特点
+
+- 滚动截图：长页面自动滚动拼接
+- 标注工具：箭头、框选、文字、马赛克
+- 窗口截图：智能识别窗口边框
+- 贴图功能：截图悬浮桌面
+
+---
+
+## 3. 系统清理 - Mole
+
+> 开源系统清理工具，由国内开发者出品。
+
+```bash
+brew install tw93/tap/mole
+```
+
+### 功能特点
+
+- 系统垃圾清理
+- 应用缓存清理
+- 隐私数据清除
+- 轻量快速
+
+### 使用方法
+
+1. 打开 Mole
+2. 一键扫描垃圾文件
+3. 选择清理内容
+4. 确认清理

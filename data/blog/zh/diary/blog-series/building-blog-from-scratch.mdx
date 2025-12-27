@@ -1,0 +1,739 @@
+---
+title: '从零开始搭建现代化博客：Next.js + Vercel 完整指南'
+date: '2025-10-12 20:00:00'
+tags: ['博客', 'Next.js', 'Vercel', '域名', 'DNS', '教程']
+draft: false
+summary: '记录从零开始搭建一个现代化博客的完整过程，包括为什么要搭建博客、技术选型、域名配置、DNS 解析、部署到 Vercel 等全流程，以及与 Hugo、Hexo、Jekyll 等传统静态博客生成器的对比。'
+---
+
+## 为什么要搭建博客？
+
+在开始技术细节之前，先聊聊为什么要搭建一个属于自己的博客。
+
+### 个人品牌与知识沉淀
+
+- **知识管理**：写博客是最好的学习方式之一，通过输出倒逼输入，将碎片化的知识系统化
+- **技术积累**：记录踩过的坑、解决的问题，未来的自己会感谢现在的记录
+- **个人品牌**：在技术社区建立影响力，展示自己的技术能力和思考深度
+- **数据自主权**：相比第三方平台（如 CSDN、掘金），自己的博客拥有完全的数据控制权
+
+### 为什么不用现成的博客平台？
+
+虽然 Medium、知乎、掘金等平台很方便，但它们有一些局限：
+
+- 平台规则变化可能影响内容展示
+- 自定义能力有限，无法完全按自己的想法设计
+- 数据不完全属于自己，平台关闭或调整策略会有风险
+- 广告和推荐算法可能影响阅读体验
+
+## 技术选型：为什么选择 Next.js？
+
+### 我的博客演进史
+
+在选择 Next.js 之前，我尝试过多种博客方案：
+
+#### 1. Hugo 时代（2019-2021）
+
+**优点**：
+
+- 构建速度极快（Go 语言编写）
+- 主题丰富，配置简单
+- 纯静态输出，部署方便
+
+**痛点**：
+
+- Go 模板语法学习曲线陡峭
+- 自定义功能需要学习 Hugo 特有的语法
+- 前端交互能力有限，难以实现复杂功能
+- 主题修改困难，需要深入理解 Hugo 架构
+
+#### 2. Hexo 时代（2021-2022）
+
+**优点**：
+
+- Node.js 生态，前端开发者友好
+- 插件生态丰富
+- 中文社区活跃
+
+**痛点**：
+
+- 构建速度慢（文章多了之后明显）
+- 插件质量参差不齐，维护不及时
+- EJS 模板不够现代化
+- 难以集成现代前端工具链
+
+#### 3. Jekyll 时代（短暂尝试）
+
+**优点**：
+
+- GitHub Pages 原生支持
+- Ruby 生态成熟
+
+**痛点**：
+
+- Ruby 环境配置复杂（特别是 Windows）
+- 构建速度慢
+- 对前端开发者不够友好
+
+### Next.js 的优势
+
+经过多次尝试，最终选择了 Next.js + Tailwind CSS 方案：
+
+#### 技术优势
+
+1. **现代化开发体验**
+   - React 组件化开发，代码复用性强
+   - TypeScript 支持，类型安全
+   - 热更新（HMR），开发效率高
+   - 完整的前端工具链（ESLint、Prettier、PostCSS）
+
+2. **灵活的渲染策略**
+   - 静态生成（SSG）：博客文章预渲染，性能极佳
+   - 服务端渲染（SSR）：动态内容按需渲染
+   - 增量静态再生（ISR）：静态页面可定期更新
+   - 客户端渲染（CSR）：交互式组件
+
+3. **强大的内容管理**
+   - Contentlayer：类型安全的 MDX 内容层
+   - MDX 支持：Markdown 中可以使用 React 组件
+   - 灵活的数据源：可以对接 CMS、数据库、API
+
+4. **优秀的性能**
+   - 自动代码分割
+   - 图片优化（next/image）
+   - 字体优化（next/font）
+   - 自动预加载
+
+5. **SEO 友好**
+   - 服务端渲染支持
+   - 自动生成 sitemap
+   - RSS feed 支持
+   - 结构化数据（JSON-LD）
+
+#### 生态优势
+
+- Vercel 一键部署，零配置
+- 丰富的 Next.js 插件生态
+- Tailwind CSS 快速构建 UI
+- 活跃的社区和完善的文档
+
+## 搭建流程
+
+### 第一步：选择模板
+
+我选择了 [Tailwind Next.js Starter Blog](https://github.com/timlrx/tailwind-nextjs-starter-blog)，这是一个功能完善的博客模板：
+
+```bash
+# 克隆模板
+git clone https://github.com/timlrx/tailwind-nextjs-starter-blog.git my-blog
+cd my-blog
+
+# 安装依赖（使用 pnpm）
+pnpm install
+
+# 启动开发服务器
+pnpm dev
+```
+
+访问 `http://localhost:3000`，你就能看到博客的初始状态了。
+
+### 第二步：自定义配置
+
+#### 修改站点信息
+
+编辑 `data/siteMetadata.js`：
+
+```javascript
+const siteMetadata = {
+  title: 'Terry的日记本',
+  author: 'Terry Tan',
+  headerTitle: 'Terry的旅行日记',
+  description: 'reading, writing, and sharing',
+  language: 'zh-cn',
+  siteUrl: 'https://yourdomain.com', // 替换为你的域名
+  siteRepo: 'https://github.com/yourusername/your-blog',
+  email: 'your@email.com',
+  github: 'https://github.com/yourusername',
+  linkedin: 'https://www.linkedin.com/in/yourprofile',
+  locale: 'zh-CN',
+}
+```
+
+#### 配置导航链接
+
+编辑 `data/headerNavLinks.ts`：
+
+```typescript
+const headerNavLinks = [
+  { href: '/', title: '首页' },
+  { href: '/blog', title: '博客' },
+  { href: '/tags', title: '标签' },
+  { href: '/projects', title: '项目' },
+  { href: '/about', title: '关于' },
+]
+```
+
+### 第三步：创建内容
+
+#### 写第一篇博客
+
+在 `data/blog/` 目录下创建 MDX 文件：
+
+```mdx
+---
+title: '我的第一篇博客'
+date: '2025-10-12'
+tags: ['随笔', '开始']
+draft: false
+summary: '这是我的第一篇博客文章'
+---
+
+## 你好，世界！
+
+这是我的第一篇博客文章。
+
+### 代码示例
+
+\`\`\`javascript
+console.log('Hello, World!')
+\`\`\`
+
+### 使用 React 组件
+
+<CustomComponent prop="value" />
+```
+
+#### 配置作者信息
+
+编辑 `data/authors/default.mdx`：
+
+```mdx
+---
+name: Terry Tan
+avatar: /static/images/avatar.png
+occupation: 软件工程师
+company: 某科技公司
+email: your@email.com
+github: https://github.com/yourusername
+---
+
+这里是你的个人简介...
+```
+
+### 第四步：部署到 Vercel
+
+#### 1. 推送代码到 GitHub
+
+```bash
+# 初始化 Git 仓库（如果还没有）
+git init
+git add .
+git commit -m "Initial commit"
+
+# 关联远程仓库
+git remote add origin https://github.com/yourusername/your-blog.git
+git branch -M main
+git push -u origin main
+```
+
+#### 2. 在 Vercel 部署
+
+1. 访问 [Vercel](https://vercel.com)
+2. 使用 GitHub 账号登录
+3. 点击 "New Project"
+4. 选择你的博客仓库
+5. Vercel 会自动检测 Next.js 项目，无需额外配置
+6. 点击 "Deploy"
+
+几分钟后，你的博客就部署成功了！Vercel 会给你一个 `your-project.vercel.app` 的域名。
+
+#### 3. 配置环境变量（可选）
+
+如果需要使用评论系统（Giscus）或分析工具（Umami），在 Vercel 项目设置中添加环境变量：
+
+```
+NEXT_PUBLIC_GISCUS_REPO=yourusername/your-blog
+NEXT_PUBLIC_GISCUS_REPOSITORY_ID=your_repo_id
+NEXT_PUBLIC_GISCUS_CATEGORY=Announcements
+NEXT_PUBLIC_GISCUS_CATEGORY_ID=your_category_id
+NEXT_UMAMI_ID=your_umami_id
+```
+
+## 域名配置详解
+
+### 购买域名
+
+推荐的域名注册商：
+
+- **国外**：Namecheap、GoDaddy、Cloudflare Registrar
+- **国内**：阿里云（万网）、腾讯云、华为云
+
+选择建议：
+
+- 优先选择 `.com`、`.net`、`.org` 等通用顶级域名
+- 域名要简短、易记、有意义
+- 避免使用连字符和数字（除非有特殊含义）
+
+### DNS 解析基础
+
+DNS（Domain Name System）是将域名转换为 IP 地址的系统。当用户访问你的域名时，DNS 解析过程如下：
+
+```
+用户输入域名 → 本地 DNS 缓存 → 递归 DNS 服务器 → 根域名服务器
+→ 顶级域名服务器 → 权威域名服务器 → 返回 IP 地址 → 浏览器访问服务器
+```
+
+### DNS 记录类型详解
+
+#### 1. A 记录（Address Record）
+
+**定义**：将域名指向 IPv4 地址
+
+**使用场景**：
+
+- 将域名指向服务器的 IPv4 地址
+- 最基础、最常用的 DNS 记录
+
+**配置示例**：
+
+```
+类型: A
+主机记录: @（代表根域名）或 www
+记录值: 76.76.21.21（Vercel 的 IP 地址）
+TTL: 600（10分钟）
+```
+
+**实际效果**：
+
+- `example.com` → `76.76.21.21`
+- `www.example.com` → `76.76.21.21`
+
+#### 2. AAAA 记录（IPv6 Address Record）
+
+**定义**：将域名指向 IPv6 地址
+
+**使用场景**：
+
+- 支持 IPv6 协议的服务器
+- 与 A 记录配合使用，提供双栈支持
+
+**配置示例**：
+
+```
+类型: AAAA
+主机记录: @
+记录值: 2606:4700:3033::ac43:bd8f
+TTL: 600
+```
+
+**为什么需要 AAAA 记录？**
+
+- IPv4 地址已经枯竭，IPv6 是未来趋势
+- 部分用户（特别是移动网络）可能只支持 IPv6
+- 同时配置 A 和 AAAA 记录可以提供更好的兼容性
+
+#### 3. CNAME 记录（Canonical Name Record）
+
+**定义**：将域名指向另一个域名（别名记录）
+
+**使用场景**：
+
+- 将子域名指向主域名
+- 将域名指向 CDN 或云服务提供商的域名
+- 统一管理，当目标 IP 变化时无需修改多个记录
+
+**配置示例**：
+
+```
+类型: CNAME
+主机记录: www
+记录值: cname.vercel-dns.com
+TTL: 600
+```
+
+**实际效果**：
+
+- 用户访问 `www.example.com`
+- DNS 解析到 `cname.vercel-dns.com`
+- 再解析 `cname.vercel-dns.com` 的 A 记录
+- 最终访问到 Vercel 的服务器
+
+**CNAME 的优势**：
+
+- Vercel 的 IP 地址可能会变化，但 `cname.vercel-dns.com` 不会变
+- 你只需配置一次 CNAME，后续 IP 变化由 Vercel 管理
+- 支持负载均衡和故障转移
+
+**CNAME 的限制**：
+
+- 根域名（`example.com`）不能使用 CNAME（DNS 规范限制）
+- 一个域名只能有一个 CNAME 记录
+- CNAME 记录不能与其他记录类型（如 A、MX）共存
+
+### 为 Vercel 配置域名
+
+#### 方案一：使用 CNAME（推荐）
+
+适用于子域名（如 `www.example.com`、`blog.example.com`）
+
+**步骤**：
+
+1. 在 Vercel 项目设置中添加域名
+2. 在域名注册商的 DNS 管理中添加 CNAME 记录：
+
+```
+类型: CNAME
+主机记录: www（或 blog）
+记录值: cname.vercel-dns.com
+TTL: 600
+```
+
+3. 等待 DNS 传播（通常几分钟到几小时）
+4. Vercel 会自动验证并配置 SSL 证书
+
+#### 方案二：使用 A 记录
+
+适用于根域名（`example.com`）
+
+**步骤**：
+
+1. 在 Vercel 项目设置中添加域名
+2. 在 DNS 管理中添加 A 记录：
+
+```
+类型: A
+主机记录: @
+记录值: 76.76.21.21
+TTL: 600
+```
+
+3. 如果支持 IPv6，同时添加 AAAA 记录：
+
+```
+类型: AAAA
+主机记录: @
+记录值: 2606:4700:3033::ac43:bd8f
+TTL: 600
+```
+
+#### 方案三：同时配置根域名和 www
+
+最佳实践是同时配置根域名和 www 子域名：
+
+```
+# 根域名使用 A 记录
+类型: A
+主机记录: @
+记录值: 76.76.21.21
+
+# www 子域名使用 CNAME
+类型: CNAME
+主机记录: www
+记录值: cname.vercel-dns.com
+```
+
+然后在 Vercel 中设置重定向，将 `www.example.com` 重定向到 `example.com`（或反之）。
+
+### 多项目域名配置
+
+如果你有多个项目，可以使用子域名区分：
+
+```
+# 主博客
+blog.example.com → CNAME → cname.vercel-dns.com（项目A）
+
+# 文档站点
+docs.example.com → CNAME → cname.vercel-dns.com（项目B）
+
+# 个人主页
+www.example.com → CNAME → cname.vercel-dns.com（项目C）
+```
+
+**注意**：虽然 CNAME 记录值都是 `cname.vercel-dns.com`，但 Vercel 会根据请求的域名路由到不同的项目。
+
+### DNS 传播与验证
+
+#### 检查 DNS 是否生效
+
+```bash
+# 查询 A 记录
+dig example.com A
+
+# 查询 AAAA 记录
+dig example.com AAAA
+
+# 查询 CNAME 记录
+dig www.example.com CNAME
+
+# 或使用 nslookup
+nslookup example.com
+```
+
+#### 在线工具
+
+- [DNS Checker](https://dnschecker.org/)：全球 DNS 传播检查
+- [What's My DNS](https://www.whatsmydns.net/)：多地区 DNS 查询
+- [MX Toolbox](https://mxtoolbox.com/)：综合 DNS 工具
+
+#### DNS 传播时间
+
+- **TTL 值**：Time To Live，DNS 记录的缓存时间
+- **传播时间**：通常 10 分钟到 48 小时不等
+- **加速传播**：
+  - 设置较短的 TTL（如 600 秒）
+  - 使用 Cloudflare 等 DNS 服务商（传播更快）
+  - 清除本地 DNS 缓存：`ipconfig /flushdns`（Windows）或 `sudo dscacheutil -flushcache`（macOS）
+
+### 常见问题
+
+#### 1. 为什么根域名不能用 CNAME？
+
+DNS 规范（RFC 1034）规定：如果一个域名有 CNAME 记录，就不能有其他类型的记录。而根域名通常需要 NS（域名服务器）和 SOA（授权起始）记录，所以不能使用 CNAME。
+
+**解决方案**：
+
+- 使用 A 记录指向 IP
+- 使用支持 CNAME Flattening 的 DNS 服务商（如 Cloudflare）
+
+#### 2. A 记录 vs CNAME，如何选择？
+
+| 场景                      | 推荐方案 | 原因                  |
+| ------------------------- | -------- | --------------------- |
+| 根域名                    | A 记录   | CNAME 不支持根域名    |
+| 子域名                    | CNAME    | IP 变化时无需修改     |
+| 自建服务器                | A 记录   | IP 固定，直接指向     |
+| 云服务（Vercel、Netlify） | CNAME    | 服务商管理 IP，更灵活 |
+
+#### 3. 如何实现 www 和根域名的统一？
+
+**方法一**：在 Vercel 中配置重定向
+
+在 `next.config.js` 中添加：
+
+```javascript
+module.exports = {
+  async redirects() {
+    return [
+      {
+        source: '/:path*',
+        has: [{ type: 'host', value: 'www.example.com' }],
+        destination: 'https://example.com/:path*',
+        permanent: true,
+      },
+    ]
+  },
+}
+```
+
+**方法二**：在 Vercel 项目设置中配置域名重定向
+
+## 进阶配置
+
+### 1. 配置 Cloudflare CDN
+
+使用 Cloudflare 可以获得：
+
+- 全球 CDN 加速
+- DDoS 防护
+- 免费 SSL 证书
+- 更快的 DNS 解析
+
+**步骤**：
+
+1. 在 Cloudflare 添加站点
+2. 将域名的 NS 记录指向 Cloudflare
+3. 在 Cloudflare 配置 DNS 记录
+4. 开启 CDN（橙色云朵图标）
+
+### 2. 配置自定义邮箱
+
+使用域名邮箱（如 `hello@example.com`）更专业：
+
+**方案一**：使用 Cloudflare Email Routing（免费）
+
+- 支持邮件转发
+- 无需邮件服务器
+
+**方案二**：使用 Google Workspace 或 Microsoft 365
+
+- 完整的邮箱功能
+- 需要付费
+
+**DNS 配置**（以 Google Workspace 为例）：
+
+```
+类型: MX
+主机记录: @
+记录值: 1 aspmx.l.google.com
+优先级: 1
+
+类型: MX
+主机记录: @
+记录值: 5 alt1.aspmx.l.google.com
+优先级: 5
+```
+
+### 3. 配置分析和监控
+
+#### Google Analytics
+
+在 `data/siteMetadata.js` 中配置：
+
+```javascript
+analytics: {
+  googleAnalytics: {
+    googleAnalyticsId: 'G-XXXXXXXXXX',
+  },
+}
+```
+
+#### Umami（开源替代方案）
+
+```javascript
+analytics: {
+  umamiAnalytics: {
+    umamiWebsiteId: 'your-website-id',
+    src: 'https://analytics.example.com/script.js',
+  },
+}
+```
+
+### 4. 配置评论系统
+
+使用 Giscus（基于 GitHub Discussions）：
+
+1. 在 GitHub 仓库启用 Discussions
+2. 访问 [Giscus 官网](https://giscus.app/zh-CN) 获取配置
+3. 在 Vercel 添加环境变量
+4. 在 `data/siteMetadata.js` 中配置
+
+## 内容呈现与素材管理
+
+内容写完只是第一步，让页面好看才算把事情做完整。这一块我通常分成三个层次来处理。
+
+### 第一层：代码和截图要干净
+
+代码块不必只靠默认主题。像 [Carbon](https://carbon.now.sh/) 和 [Ray.so](https://ray.so/) 这种在线工具，可以把关键代码转成高分辨率图片，分享到社交平台时更醒目。截图同理，写文章前先把截图整理干净，Mac 上的 CleanShot X、Shottr，Windows 用 Flameshot，都能自动加阴影、边框，还能一键模糊敏感信息。
+
+### 第二层：图形和插画有节制
+
+结构复杂的文章我会画一张图，帮助读者一次性理解。流程图、状态图用 [Mermaid](https://mermaid.js.org/)，直接写在 MDX 里即可渲染；需要草图式手绘感时，选 [Excalidraw](https://excalidraw.com/) 或 [tldraw](https://www.tldraw.com/)，导出 SVG 放进文章。要封面或者引导图，最近试用 [Recraft](https://www.recraft.ai/) 这类生成式工具，提示词控制好，就能快速产出一套风格统一的视觉素材。
+
+### 第三层：图片存储不能随意
+
+图片量小的时候，直接放在 `public/static/images` 最省心，Next.js 自带的 `next/image` 帮你做优化。但篇幅一多，仓库会暴涨。这时候我会迁移到对象存储或图床，例如 Cloudflare R2、Supabase Storage、阿里云 OSS，配合自定义域名走 CDN。国内访问要求高，可以接入七牛云或又拍云；海外读者多，用 Vercel 自带的 Edge Network 就够。无论选哪个，记得把原图和压缩图分开归档，Markdown 里引用 CDN 链接，仓库里只留必要的缩略图，构建和部署速度都会轻松不少。
+
+## 性能优化
+
+### 1. 图片优化
+
+使用 Next.js 的 Image 组件：
+
+```jsx
+import Image from 'next/image'
+;<Image
+  src="/static/images/photo.jpg"
+  alt="描述"
+  width={800}
+  height={600}
+  priority // 首屏图片使用
+/>
+```
+
+### 2. 字体优化
+
+使用 `next/font`：
+
+```javascript
+import { Inter } from 'next/font/google'
+
+const inter = Inter({ subsets: ['latin'] })
+```
+
+### 3. 代码分割
+
+Next.js 自动进行代码分割，但可以手动优化：
+
+```javascript
+import dynamic from 'next/dynamic'
+
+const DynamicComponent = dynamic(() => import('../components/Heavy'), {
+  loading: () => <p>加载中...</p>,
+  ssr: false, // 禁用服务端渲染
+})
+```
+
+### 4. 缓存策略
+
+在 `next.config.js` 中配置：
+
+```javascript
+module.exports = {
+  async headers() {
+    return [
+      {
+        source: '/static/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+    ]
+  },
+}
+```
+
+## 总结与收获
+
+### 技术收获
+
+1. **深入理解 Next.js**：从路由、渲染策略到性能优化
+2. **掌握 DNS 原理**：理解域名解析的完整流程
+3. **学会 Vercel 部署**：体验现代化的部署流程
+4. **提升前端工程化能力**：TypeScript、ESLint、Prettier 等工具链
+
+### 对比传统方案
+
+| 特性       | Hugo/Hexo/Jekyll | Next.js                 |
+| ---------- | ---------------- | ----------------------- |
+| 学习曲线   | 低（配置为主）   | 中（需要 React 基础）   |
+| 开发体验   | 一般             | 优秀（HMR、TypeScript） |
+| 自定义能力 | 受限于模板系统   | 完全自由（React 组件）  |
+| 性能       | 优秀（纯静态）   | 优秀（SSG + 优化）      |
+| 生态       | 插件生态         | npm 生态                |
+| 部署       | 需要手动配置     | Vercel 一键部署         |
+| 维护成本   | 低               | 中（需要更新依赖）      |
+
+### 最佳实践建议
+
+1. **内容为王**：技术是手段，持续输出高质量内容才是核心
+2. **保持简洁**：不要过度设计，专注于写作体验
+3. **定期备份**：代码托管在 GitHub，内容定期导出备份
+4. **SEO 优化**：合理使用标题、描述、关键词，提交 sitemap
+5. **性能监控**：使用 Lighthouse、WebPageTest 定期检查性能
+6. **持续迭代**：根据反馈不断优化用户体验
+
+### 下一步计划
+
+- [ ] 添加全文搜索功能（Algolia）
+- [ ] 集成 Newsletter 订阅
+- [ ] 优化移动端体验
+- [ ] 添加深色模式切换动画
+- [ ] 实现文章阅读进度条
+- [ ] 添加相关文章推荐
+- [ ] 集成 Notion 作为 CMS
+
+## 参考资源
+
+- [Next.js 官方文档](https://nextjs.org/docs)
+- [Vercel 部署指南](https://vercel.com/docs)
+- [Tailwind CSS 文档](https://tailwindcss.com/docs)
+- [Contentlayer 文档](https://contentlayer.dev/)
+- [DNS 原理详解](https://www.cloudflare.com/learning/dns/what-is-dns/)
+- [Giscus 评论系统](https://giscus.app/zh-CN)
+
+---
+
+希望这篇文章能帮助你搭建属于自己的博客。如果有任何问题，欢迎在评论区交流！

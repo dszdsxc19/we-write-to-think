@@ -1,0 +1,241 @@
+---
+title: Claude Code 五件套配置
+date: 2025-12-25
+tags: [Claude Code, MCP, 教程]
+draft: true
+---
+
+## 五件套全景：它们分别是谁？
+
+很多人分不清这5个东西，先用大白话说一遍，让你有个全景图：
+
+### 1. Plugins（插件）
+
+这是**打包容器**，用来装其他四个工具的包装盒。
+
+### 2. MCP（Model Context Protocol）
+
+这是**外部连接器**，让 Claude 能访问网络、文件、数据库等。
+
+### 3. Skills（技能）
+
+这是**自动 SOP**，Claude 会根据场景自动触发的标准作业流程。
+
+### 4. SubAgents（子智能体）
+
+这是**并行工作组**，你一次派出去 10 个克隆人同时干活。
+
+### 5. 斜杠命令（Slash Commands）
+
+这是**手动按钮**，你输入 `/release`，它就老老实实执行一套固定流程。
+
+---
+
+## 核心定义对比表
+
+| 工具          | 作用                 | 触发方式     | 典型场景                   |
+| ------------- | -------------------- | ------------ | -------------------------- |
+| **Plugins**   | 打包工具包，一键分发 | 手动安装     | 团队标准化工具包           |
+| **MCP**       | 连接外部能力         | 自动调用     | 搜索、文件、浏览器、数据库 |
+| **Skills**    | 自动 SOP             | 场景自动触发 | 审查、代码检查             |
+| **SubAgents** | 并行工作组           | 手动触发     | 多任务并行处理             |
+| **斜杠命令**  | 固定流程执行         | 手动输入     | 重复性标准化操作           |
+
+---
+
+## 你该用哪个？（决策树）
+
+在你深入了解每个工具之前，先看这张决策图，对号入座不会错：
+
+### 问自己 4 个问题：
+
+**问题 0：团队需要标准化工具包吗？**
+
+- ✅ 是 → **Plugins**（打包 Skills + Commands + MCP + SubAgents，一键安装分发）
+
+**问题 1：这需要调用外部能力吗？（搜索、文件、浏览器、记忆、数据库）**
+
+- ✅ 是 → **MCP**（选对应服务器：搜索用 exa/brave、文件用 filesystem、记忆用 memory）
+
+**问题 2：这会重复做很多次吗？（审查/检查/核对）**
+
+- ✅ 是（自动触发）→ **Skills**（Claude 检测场景自动执行）
+- ✅ 是（手动触发）→ **斜杠命令**（输入 `/xxx` 才执行）
+
+**问题 3：这需要并行处理吗？（多个独立任务同时进行，如性能/安全/探索）**
+
+- ✅ 是 → **SubAgents**（据说最多 10 并行，成本 N 倍，节省 50-80% 时间）
+- ✅ 是（单任务深度推理）→ **sequential-thinking MCP**（深度思考引擎）
+
+---
+
+## Chrome DevTools MCP 安装
+
+```sh
+claude mcp add chrome-devtools bunx chrome-devtools-mcp@latest
+```
+
+## Claude Skills 安装
+
+```sh
+claude plugin marketplace add anthropics/skills
+```
+
+这样会通过插件的形式安装。
+
+或者下载源码放到对应的文件夹，这样会更灵活。
+
+## Hooks 安装
+
+### 任务完成提醒 Noti
+
+```sh
+brew install noti
+```
+
+然后在 `~/.claude/settings.json` 里添加以下内容：
+
+```json
+{
+  "hooks": {
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "noti -t 'Claude Code 需要确认' -m 'Claude Code 发送通知' && afplay /System/Library/Sounds/Glass.aiff"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "noti -t 'Claude Code 已停止' -m '任务已结束' && afplay /System/Library/Sounds/Glass.aiff"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+---
+
+## 新功能：让 Claude Code 更加自主地工作
+
+Anthropic 在 2025 年 9 月发布了 Claude Code 重大升级，搭载 **Sonnet 4.5**，现在能在终端和 IDE 中处理更长、更复杂的开发任务。
+
+### VS Code 扩展（测试版）
+
+原生 VS Code 扩展将 Claude Code 直接带入你的 IDE。通过专用侧边栏面板，实时查看 Claude 的更改和内联 diff。对于喜欢在 IDE 中工作的用户，这是更丰富的图形化体验。
+
+[下载 VS Code 扩展](https://marketplace.visualstudio.com/items?itemName=anthropic.claude-code)
+
+### 终端界面升级
+
+更新后的终端界面包含：
+
+- **更好的状态可见性** - 随时了解任务进展
+- **可搜索的历史记录**（Ctrl+r）- 轻松复用或编辑之前的提示词
+
+### Checkpoints（检查点）
+
+复杂开发通常涉及探索和迭代。检查点系统会自动在每次更改前保存代码状态：
+
+- 按 **Esc 两次** 或使用 `/rewind` 命令，立即倒带到之前的版本
+- 可选择恢复代码、会话，或两者同时恢复
+- 适用于 Claude 的编辑，建议结合版本控制使用
+
+这让你可以放心地追求更大胆的重构或功能探索任务。
+
+### Claude Agent SDK
+
+面向想创建自定义代理体验的团队，提供与 Claude Code 相同的核心工具、上下文管理系统和权限框架。
+
+新增功能：
+
+- **Subagents（子代理）** - 委托专门任务，如主代理构建前端时，后端 API 并行开发
+- **Hooks（钩子）** - 在特定时刻自动触发操作，如代码修改后运行测试套件、提交前 linting
+- **Background Tasks（后台任务）** - 让开发服务器等长期进程保持活跃，不阻塞其他工作
+
+开发者已在广泛用例中使用 SDK，包括财务合规代理、网络安全代理和代码调试代理。
+
+[查看 Claude Agent SDK 文档 →](https://docs.claude.com/en/api/agent-sdk/overview)
+
+---
+
+## 进阶配置：让 Claude Code 真正高效起来
+
+来自 6 个月硬核使用的实战总结，聚焦三个核心：
+
+### 1. Hooks 自动激活技能（最重要！）
+
+**问题**：Skills 写了但 Claude 从不主动用。
+
+**解决方案**：用 `UserPromptSubmit` 钩子在 Claude 执行前注入技能提醒。
+
+```json
+// skill-rules.json 示例
+{
+  "backend-dev-guidelines": {
+    "keywords": ["backend", "controller", "API", "endpoint"],
+    "filePatterns": ["backend/src/**/*.ts"]
+  }
+}
+```
+
+**两个必备钩子**：
+
+- `UserPromptSubmit` - 分析提示词，自动建议相关技能
+- `PostToolUse` - 追踪编辑的文件
+
+### 2. Dev Docs 工作流（防丢失）
+
+Claude 容易"失忆"，用三文件结构保持上下文：
+
+```
+dev/active/[任务名]/
+├── [任务名]-plan.md     # 计划
+├── [任务名]-context.md  # 关键文件和决策
+└── [任务名]-tasks.md    # 待办清单
+```
+
+每次会话开始先读这些文件，低上下文时用 `/update-dev-docs` 更新。
+
+### 3. PM2 后端管理
+
+让 Claude 能直接查看后端日志：
+
+```sh
+# 一键启动所有后端服务
+pnpm pm2:start
+
+# Claude 实时查看日志
+pm2 logs [服务名]
+```
+
+### 核心原则
+
+| 原则                   | 说明                                     |
+| ---------------------- | ---------------------------------------- |
+| **规划为王**           | 大任务先用规划模式                       |
+| **500 行原则**         | SKILL.md 控制在 500 行内，细节用资源文件 |
+| **让 Claude 审查自己** | 代码完成后让 Claude 复查                 |
+
+---
+
+## 快速入门
+
+- **Claude Sonnet 4.5** 是新默认模型，运行 `/model` 切换
+- **VS Code 扩展**：从市场下载即可使用
+- **终端更新**：只需更新本地安装
+
+## 参考文档
+
+- [Enabling Claude Code to work more autonomously](https://www.anthropic.com/news/enabling-claude-code-to-work-more-autonomously)
+- [Use Claude Code in VS Code](https://code.claude.com/docs/en/vs-code#vs-code-extension-vs-claude-code-cli)
+- [Claude Code is a Beast – Tips from 6 Months of Hardcore Use](https://www.reddit.com/r/ClaudeAI/comments/1oivjvm/claude_code_is_a_beast_tips_from_6_months_of/)
+- [Claude Code Infrastructure Showcase](https://github.com/diet103/claude-code-infrastructure-showcase)

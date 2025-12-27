@@ -1,708 +1,29 @@
 ---
-title: '本地现代化开发工具链：2025年开发者效率提升指南'
-date: '2025-12-25 17:00:00'
-tags: ['cli', 'tools', 'productivity', 'developer-experience', 'terminal']
+title: '新macOS开发环境安装指南'
+date: '2025-12-27'
+tags: ['cli', 'tools', 'productivity', 'setup']
 draft: false
-summary: '全面解析现代本地开发工具链，从Shell、编辑器到命令行工具的完整升级方案，让AI与开发者的协作更高效。'
+summary: '从零开始配置macOS开发环境，按安装顺序整理的核心工具链。'
 ---
 
-# 本地现代化开发工具链
+# 新 macOS 开发环境安装指南
 
-在AI辅助开发成为常态的2025年，本地开发工具的选择直接影响开发效率。现代工具不仅追求更快、更强，更重要的是**与AI的协作友好性**——清晰的输出、结构化的数据、人性化的语法，让AI能更好地理解和使用这些工具。
+## 工具哲学
 
-本文将系统性地介绍本地开发工具链的现代化升级方案。
+**约定大于配置，现代化，速度快**
 
-## 一、Shell环境
+选择工具的标准：
 
-### 1.1 现代Shell
+- 默认行为符合直觉，无需大量配置
+- 积极维护，社区活跃
+- 性能优先，Rust/Go 实现优先
+- AI 友好，结构化输出
 
-**Zsh + Oh My Zsh**（主流选择）
+---
 
-```bash
-# 安装
-sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
-```
+拿到新电脑后，按以下顺序安装配置。
 
-**优势**：
-
-- 兼容Bash语法
-- 丰富的插件生态
-- 智能补全和语法高亮
-
-**必备插件**：
-
-- `zsh-autosuggestions`：历史命令自动建议
-- `zsh-syntax-highlighting`：命令语法高亮
-- `zsh-z`：目录快速跳转
-
-**轻量化 Zsh 配置**（推荐，无 Oh My Zsh）
-
-Oh My Zsh 虽然强大但较臃肿。现代轻量化方案：
-
-```bash
-# 安装依赖
-brew install zsh-syntax-highlighting zsh-autosuggestions zoxide starship
-
-# ~/.zshrc - 轻量化配置
-# 命令补全
-autoload -Uz compinit && compinit
-
-# 语法高亮
-source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
-
-# 历史建议
-source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh
-
-# 历史配置
-setopt HIST_FIND_NO_DUPS
-setopt HIST_IGNORE_DUPS
-setopt SHARE_HISTORY
-HISTSIZE=10000
-SAVEHIST=10000
-
-# 目录跳转
-eval "$(zoxide init zsh)"
-
-# 提示符
-eval "$(starship init zsh)"
-
-# 现代命令别名
-alias ls='eza --git --icons'
-alias ll='eza -lah --git --icons'
-alias cat='bat'
-alias grep='rg'
-alias find='fd'
-alias du='duf'
-alias top='btop'
-```
-
-**优势**：
-
-- 启动速度提升 5-10 倍
-- 无冗余插件和主题
-- 完全可控的配置
-
-**Nushell**（AI友好型）
-
-```nu
-# 结构化数据输出
-ls | where size > 1mb | sort-by modified
-```
-
-**特点**：
-
-- 一切皆数据的管道
-- 内置JSON/TOML/YAML支持
-- 表格化输出，AI极易解析
-
-### 1.2 终端模拟器
-
-**Ghostty**（强烈推荐，2025年新秀）
-
-```bash
-# 安装（macOS）
-brew install --cask ghostty
-```
-
-**特点**：
-
-- 基于GPU渲染，极低延迟
-- 原生支持分屏、多标签
-- 跨平台一致体验
-- 内置SSH集成
-- 配置简洁，性能优于iTerm2
-
-**对比**：
-| 功能 | iTerm2 | Kitty | Ghostty |
-| -------- | ---- | ------ | ------ |
-| 性能 | 中 | 快 | 最快 |
-| 配置复杂度 | 高 | 中 | 低 |
-| 跨平台 | ❌ | ✅ | ✅ |
-| 分屏 | ✅ | 插件 | ✅ 原生 |
-| 启动速度 | 慢 | 快 | 最快 |
-
-**Warp**（AI原生终端）
-
-- **特点**：内置AI助手、命令块导航、智能补全
-- **优势**：AI可以理解命令历史和上下文
-
-**Kitty / Alacritty**（高性能）
-
-- **特点**：GPU加速、极低延迟
-- **适用**：远程开发、大量输出场景
-
-**iTerm2**（macOS经典）
-
-- **功能**：分屏、触发器、Shell集成
-- **优势**：成熟的生态系统
-
-### 1.3 命令历史工具
-
-**Atuin**（强烈推荐）
-
-```bash
-# 安装
-curl --proto '=https' --tlsv1.2 -sSf https://setup.atuin.sh | sh
-```
-
-**功能**：
-
-- 同步命令历史到云端
-- 加密存储
-- 全文搜索历史
-- AI可以检索历史命令
-
-**McFly**
-
-- **特点**：基于神经网络的历史推荐
-- **优势**：学习你的使用习惯
-
-## 二、文件操作工具
-
-### 2.1 文件列表
-
-**eza**（推荐，前身exa）
-
-```bash
-# 安装
-brew install eza
-
-# 使用
-eza -lah --tree --level 2 --git
-```
-
-**对比**：
-| 功能 | ls | eza |
-| -------- | ---- | ------ |
-| 语法高亮 | ❌ | ✅ |
-| Git状态 | ❌ | ✅ |
-| Tree视图 | ❌ | ✅ |
-| 图标 | ❌ | ✅ |
-| 输出格式 | 混乱 | 结构化 |
-
-**Zoxide**（智能跳转）
-
-```bash
-# 安装
-brew install zoxide
-
-# 使用：记忆常用目录
-z project    # 跳转到项目目录
-z dot        # 跳转到dotfiles
-```
-
-### 2.2 文件查找
-
-**fd**（推荐）
-
-```bash
-# 安装
-brew install fd
-
-# 使用
-fd "pattern"           # 查找文件
-fd -e js "component"   # 查找JS文件
-fd -H "config"         # 包含隐藏文件
-```
-
-**对比**：
-| 功能 | find | fd |
-| ---------- | ---- | ---------- |
-| 速度 | 慢 | 快10-100倍 |
-| 语法 | 复杂 | 简单直观 |
-| .gitignore | ❌ | ✅ 自动忽略 |
-| 正则 | 支持 | 支持 |
-| 彩色输出 | ❌ | ✅ |
-
-**fzf**（模糊查找神器）
-
-```bash
-# 安装
-brew install fzf
-
-# 组合使用
-fd . | fzf           # 文件模糊搜索
-cat **/*              # 结合shell通配符
-```
-
-### 2.3 文件内容查看
-
-**bat**（推荐）
-
-```bash
-# 安装
-brew install bat
-
-# 使用
-bat file.md          # 带语法高亮
-bat -n file.js       # 显示行号
-bat -A script.sh     # 显示隐藏字符
-```
-
-**对比**：
-| 功能 | cat | bat |
-| -------- | --- | --- |
-| 语法高亮 | ❌ | ✅ |
-| 行号 | ❌ | ✅ |
-| Git集成 | ❌ | ✅ |
-| 分页 | ❌ | ✅ |
-| 文件头 | ❌ | ✅ |
-
-**delta**（Git diff增强）
-
-```bash
-# 配置
-git config --global core.pager delta
-git config --global interactive.diffFilter "delta --color-only"
-```
-
-### 2.4 文本搜索
-
-**ripgrep (rg)**（必备）
-
-```bash
-# 安装
-brew install ripgrep
-
-# 使用
-rg "pattern"              # 搜索
-rg -i "error"             # 忽略大小写
-rg -t js "useState"       # 仅JS文件
-rg -C 3 "pattern"         # 显示上下文
-rg --json "pattern"       # JSON输出（AI友好）
-```
-
-**对比**：
-| 功能 | grep | ripgrep |
-| ---------- | ------ | ------------ |
-| 速度 | 慢 | 极快（100x） |
-| .gitignore | ❌ | ✅ |
-| 默认递归 | ❌ | ✅ |
-| 彩色输出 | 需配置 | ✅ |
-| Unicode | ❌ | ✅ |
-
-**the_silver_searcher (ag)**
-
-- **特点**：类似ripgrep，但稍慢
-- **适用**：ripgrep不可用的环境
-
-### 2.5 JSON处理
-
-**jq**（必备）
-
-```bash
-# 安装
-brew install jq
-
-# 使用
-cat data.json | jq '.users[] | select(.age > 25)'
-curl api.com | jq -r '.data.name'
-```
-
-**jc**（JSON转换器）
-
-```bash
-# 将命令输出转为JSON
-ls | jc --ls
-ps | jc --ps
-dig google.com | jc --dig
-```
-
-**特点**：
-
-- 让任何命令输出结构化
-- AI可以直接解析处理
-
-### 2.6 文本编辑
-
-**helix**（现代编辑器）
-
-- **特点**：模态编辑、内置LSP、树选择
-- **优势**：开箱即用，无需配置
-
-**micro**（简单替代nano）
-
-- **特点**：易用、鼠标支持、插件系统
-- **适用**：服务器快速编辑
-
-## 三、进程与系统工具
-
-### 3.1 进程监控
-
-**btop**（推荐）
-
-```bash
-# 安装
-brew install btop
-```
-
-**特点**：
-
-- 美观的UI界面
-- 鼠标操作支持
-- 资源使用图形化
-- 功能菜单
-
-**htop**（经典选择）
-
-- **特点**：比top更友好
-- **优势**：稳定、广泛安装
-
-**bottom**（Rust实现）
-
-- **特点**：类似btop，更轻量
-
-### 3.2 网络工具
-
-**HTTPie**（推荐）
-
-```bash
-# 安装
-brew install httpie
-
-# 使用
-http GET api.com/users
-http POST api.com/users name=John email=john@example.com
-http -v PUT api.com/users/1 name=Jane
-```
-
-**curlie**（curl + HTTPie）
-
-```bash
-# curl的语法 + HTTPie的输出
-curlie GET api.com/users
-```
-
-**对比**：
-| 功能 | curl | HTTPie | curlie |
-| ---------- | ---- | ------ | ------ |
-| 语法 | 复杂 | 简单 | 简单 |
-| JSON格式化 | ❌ | ✅ | ✅ |
-| 彩色输出 | ❌ | ✅ | ✅ |
-| 兼容性 | 最高 | 中等 | 高 |
-
-**dog**（现代dig）
-
-```bash
-# 安装
-brew install dog
-
-# 使用
-dog example.com
-dog example.com MX
-```
-
-### 3.3 磁盘工具
-
-**dufs**（现代du）
-
-```bash
-# 安装
-brew install duf
-
-# 直观显示磁盘使用
-```
-
-**ncdu**（交互式du）
-
-```bash
-# 安装
-brew install ncdu
-
-# 交互式清理磁盘
-```
-
-## 四、Git工具
-
-### 4.1 Git增强
-
-**lazygit**（强烈推荐）
-
-```bash
-# 安装
-brew install lazygit
-
-# 使用：交互式Git操作
-```
-
-**功能**：
-
-- 可视化分支管理
-- 交互式暂存
-- 内置Git日志
-- 快捷键操作
-
-**tig**
-
-- **特点**：文本模式Git工具
-- **优势**：远程服务器友好
-
-### 4.2 Git UI客户端
-
-**GitKraken**（跨平台）
-
-- **特点**：图形化Git客户端
-- **功能**：合并工具、拉取请求
-
-**GitHub Desktop**（官方）
-
-- **特点**：GitHub集成
-- **适用**：GitHub重度用户
-
-## 五、开发环境
-
-### 5.1 版本管理
-
-**asdf**（多版本管理）
-
-```bash
-# 安装
-brew install asdf
-
-# 管理多种语言版本
-asdf install nodejs 20.0.0
-asdf install python 3.12.0
-```
-
-**fnm**（Node.js专用）
-
-```bash
-# 安装
-brew install fnm
-
-# 更快、更简单
-fnm use 20
-fnm install lts
-```
-
-**对比**：
-| 功能 | nvm | fnm | asdf |
-| --------- | --- | ---- | ---- |
-| 速度 | 慢 | 快 | 中 |
-| 多语言 | ❌ | ❌ | ✅ |
-| Shell兼容 | zsh | 全部 | 全部 |
-
-### 5.2 数据库工具
-
-**pgcli**（PostgreSQL客户端）
-
-```bash
-# 安装
-brew install pgcli
-
-# 特点：自动补全、语法高亮
-```
-
-**litecli**（SQLite客户端）
-
-- **特点**：类似pgcli，用于SQLite
-
-**mycli**（MySQL客户端）
-
-- **特点**：类似pgcli，用于MySQL
-
-## 六、Docker工具
-
-### 6.1 容器管理
-
-**lazydocker**（推荐）
-
-```bash
-# 安装
-brew install lazydocker
-
-# 终端UI管理Docker
-```
-
-**功能**：
-
-- 可视化容器/卷/网络
-- 日志查看
-- 一键重启/删除
-
-### 6.2 替代方案
-
-**podman**
-
-- **特点**：无守护进程、兼容Docker
-- **优势**：更安全
-
-**nerdctl**
-
-- **特点**：containerd CLI
-- **适用**：Kubernetes环境
-
-## 七、AI集成工具
-
-### 7.1 CLI AI助手
-
-**aider**（AI编码助手）
-
-```bash
-# 安装
-pip install aider-chat
-
-# 使用
-aider --model gpt-4
-```
-
-**功能**：
-
-- 直接在终端编辑文件
-- Git集成
-- 自动提交
-
-**gptme**
-
-```bash
-# 安装
-pip install gptme
-
-# 交互式AI终端
-```
-
-### 7.2 代码审查
-
-**cursor**
-
-- **特点**：AI原生IDE
-- **功能**：代码补全、重构、解释
-
-**copilot-cli**
-
-```bash
-# 将自然语言转为命令
-gps "list all processes"
-```
-
-## 八、通知系统
-
-长任务运行时，通知系统让你无需等待，任务完成时自动提醒。
-
-### 8.1 noti（跨平台通知）
-
-```bash
-# 安装
-brew install noti
-```
-
-**功能**：
-
-- 监控进程并在完成时发送通知
-- 支持多种通知渠道（桌面、手机、Slack、Telegram等）
-- 可发送通知到 macOS/Linux/Windows
-
-**使用示例**：
-
-```bash
-# 前置使用
-noti tar -cjf music.tar.bz2 Music/
-
-# 后置使用
-clang foo.c -Wall -lm -o bizz; noti
-
-# 已运行任务（Ctrl+Z 暂停后恢复）
-$ long-running-command
-^Z
-$ fg; noti
-
-# 管道输入
-make test 2>&1 | tail -5 | noti -t "测试结果" -m -
-```
-
-**配置文件** `~/.config/noti/noti.yaml`：
-
-```yaml
-# 默认通知方式
-defaultprovider: terminalnotifier
-
-# macOS 配置
-terminalnotifier:
-  sound: default
-  sender: com.apple.Terminal
-```
-
-### 8.2 terminal-notifier（macOS 原生）
-
-```bash
-# 安装
-brew install terminal-notifier
-```
-
-**使用示例**：
-
-```bash
-# 基本通知
-terminal-notifier -title "构建完成" -message "项目已成功构建"
-
-# 带声音
-terminal-notifier -title "测试失败" -message "3个测试失败" -sound Ping
-
-# 定时通知
-terminal-notifier -title "会议提醒" -message "5分钟后开始" -delay 300
-```
-
-### 8.3 Claude Code 集成
-
-在 `~/.claude/settings.json` 中配置 hooks：
-
-```json
-{
-  "hooks": {
-    "Notification": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "terminal-notifier -title \"🔔 Claude Code\" -message \"Claude 需要你的输入\""
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "terminal-notifier -title \"✅ Claude Code\" -message \"任务已完成\""
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-### 8.4 对比
-
-| 功能       | noti | terminal-notifier |
-| ---------- | ---- | ----------------- |
-| 跨平台     | ✅   | ❌ 仅macOS        |
-| 进程监控   | ✅   | ❌                |
-| 多渠道     | ✅   | ❌                |
-| 配置复杂度 | 中   | 低                |
-| 推荐场景   | 通用 | macOS专用         |
-
-## 九、macOS 系统工具
-
-### 9.1 系统信息查询
-
-**系统版本信息**
-
-```bash
-# 查看系统版本
-sw_vers
-# ProductName:	macOS
-# ProductVersion:	15.0
-# BuildVersion:	24A348
-
-# 查看详细硬件信息
-system_profiler SPHardwareDataType
-```
-
-**defaults 命令**（修改系统设置）
+## 1. 系统初始化
 
 ```bash
 # 显示隐藏文件
@@ -712,321 +33,53 @@ killall Finder
 # 显示文件扩展名
 defaults write NSGlobalDomain AppleShowAllExtensions -bool true
 
-# 设置截图保存位置
+# 截图保存位置
 defaults write com.apple.screencapture location ~/Downloads/Screenshots
 killall SystemUIServer
 
-# 禁用 Dashboard
-defaults write com.apple.dashboard mcx-disabled -bool true
-
-# 加速 Dock 显示动画
+# 加速 Dock 动画
 defaults write com.apple.dock autohide-time-modifier -float 0.4
 killall Dock
 ```
 
-**系统状态监控**
+## 2. 安装 Homebrew
+
+> macOS 包管理器，所有其他工具的安装基础
 
 ```bash
-# 查看所有电源管理设置
-pmset -g
-
-# 查看当前休眠状态
-pmset -g assertions
-
-# 禁用休眠（笔记本充电时）
-sudo pmset -c sleep 0
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 ```
 
-### 9.2 网络配置
+## 3. 安装 Git
+
+> 版本控制，代码协作必备
 
 ```bash
-# 查看网络状态
-networksetup -listallnetworkservices
+brew install git
 
-# 查看 Wi-Fi 信息
-networksetup -getinfo Wi-Fi
+# 配置
+git config --global user.name "Your Name"
+git config --global user.email "you@example.com"
 
-# 刷新 DNS
-sudo dscacheutil -flushcache
-sudo killall -HUP mDNSResponder
+# Git diff 增强
+brew install delta
+git config --global core.pager delta
+git config --global interactive.diffFilter "delta --color-only"
+git config --global delta.navigate true
 ```
 
-### 9.3 Fastfetch（系统信息展示）
+## 4. 安装 Zsh 和插件
+
+> 现代 Shell，比默认 Bash 更智能
 
 ```bash
-# 安装
-brew install fastfetch
-
-# 使用
-fastfetch
+brew install zsh-syntax-highlighting zsh-autosuggestions zoxide starship
 ```
 
-**替代 neofetch**，特点：
-
-- C++ 编写，性能极高
-- 原生支持 macOS/Linux/Windows
-- 可配置输出 JSON 格式（AI友好）
-- 更少的依赖
-
-**配置文件** `~/.config/fastfetch/config.jsonc`：
-
-```jsonc
-{
-  "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
-  "modules": [
-    "title",
-    "os",
-    "kernel",
-    "uptime",
-    "packages",
-    "shell",
-    "terminal",
-    "cpu",
-    "gpu",
-    "memory",
-    "disk",
-    "localip",
-  ],
-}
-```
-
-## 十、效率增强工具
-
-### 10.1 进度显示
-
-**pv（Pipe Viewer）**
+将以下内容写入 `~/.zshrc`：
 
 ```bash
-# 安装
-brew install pv
-
-# 显示复制进度
-pv sourcefile > destfile
-
-# 显示大文件解压进度
-pv archive.tar.gz | tar xzf -
-```
-
-**progress（Coreutils 进度条）**
-
-```bash
-# 安装
-brew install progress
-
-# 监控正在运行的 cp/mv/dd 等命令
-progress -M
-```
-
-### 10.2 任务管理
-
-**taskwarrior**（命令行任务管理）
-
-```bash
-# 安装
-brew install task
-
-# 添加任务
-task add Fix the bug in login
-
-# 列出任务
-task list
-
-# 完成任务
-task 1 done
-
-# 查看任务统计
-task summary
-```
-
-**timewarrior**（时间跟踪）
-
-```bash
-# 安装
-brew install timewarrior
-
-# 开始跟踪
-timew start
-
-# 停止跟踪
-timew stop
-
-# 查看报表
-timew summary
-```
-
-### 10.3 剪贴板工具
-
-**macOS 原生命令**
-
-```bash
-# 复制到剪贴板
-echo "hello" | pbcopy
-
-# 从剪贴板粘贴
-pbpaste
-
-# 复制文件内容
-pbcopy < file.txt
-
-# 处理剪贴板内容
-pbpaste | rg "pattern"
-```
-
-**clipboard**（跨平台）
-
-```bash
-# 安装
-brew install clipboard
-
-# 使用
-echo "text" | clipboard
-clipboard > file.txt
-```
-
-### 10.4 网络测速
-
-```bash
-# 安装
-brew install speedtest-cli
-
-# 测试网速
-speedtest-cli
-
-# 简化输出
-speedtest-cli --simple
-```
-
-## 十一、配置与Dotfiles
-
-### 11.1 Dotfiles管理
-
-**Chezmoi**（推荐）
-
-```bash
-# 安装
-brew install chezmoi
-
-# 初始化
-chezmoi init
-```
-
-**特点**：
-
-- 模板系统
-- 私密数据加密
-- 跨平台支持
-
-### 11.2 自动安装脚本
-
-```bash
-#!/bin/bash
-# install.sh - macOS开发环境一键安装
-
-# 基础工具
-brew install bat eza fd ripgrep fzf zoxide
-brew install btop duf ncdu
-brew install httpie jq jc
-brew install lazygit lazydocker
-brew install atuin
-
-# 终端和Shell
-brew install --cask ghostty
-brew install starship zsh-syntax-highlighting zsh-autosuggestions
-
-# 通知工具
-brew install noti terminal-notifier
-
-# 系统工具
-brew install fastfetch pv progress speedtest-cli
-brew install task timewarrior
-
-# Shell配置（可选轻量方案）
-# curl --proto '=https' --tlsv1.2 -sSf https://setup.atuin.sh | sh
-# sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
-```
-
-## 十二、完整工具链清单
-
-### 12.1 核心必备
-
-```bash
-# 文件操作
-brew install bat           # cat替代
-brew install exa           # ls替代
-brew install fd            # find替代
-brew install ripgrep       # grep替代
-brew install fzf           # 模糊查找
-brew install zoxide        # 目录跳转
-brew install jq jc         # JSON处理
-
-# 系统工具
-brew install btop          # 进程监控
-brew install duf           # 磁盘使用
-brew install ncdu          # 磁盘清理
-
-# 网络工具
-brew install httpie        # HTTP客户端
-brew install dog           # DNS查询
-
-# Git工具
-brew install lazygit       # Git TUI
-brew install gh            # GitHub CLI
-
-# 容器工具
-brew install lazydocker    # Docker TUI
-
-# 历史工具
-brew install atuin         # 命令历史
-
-# 版本管理
-brew install fnm           # Node.js版本
-```
-
-### 12.2 可选增强
-
-```bash
-# 编辑器
-brew install helix         # 现代编辑器
-brew install micro         # nano替代
-
-# 数据库客户端
-brew install pgcli         # PostgreSQL
-brew install litecli       # SQLite
-brew install mycli         # MySQL
-
-# Dotfiles管理
-brew install chezmoi       # 配置管理
-
-# 通知系统
-brew install noti          # 跨平台通知
-brew install terminal-notifier  # macOS通知
-
-# 系统信息
-brew install fastfetch     # 替代 neofetch
-
-# 任务管理
-brew install task          # taskwarrior
-brew install timewarrior   # 时间跟踪
-
-# 进度工具
-brew install pv            # pipe viewer
-brew install progress      # coreutils 进度
-
-# 网络测速
-brew install speedtest-cli # 网络测速
-
-# AI工具
-pip install aider-chat     # AI编码助手
-```
-
-## 十三、配置示例
-
-### 13.1 Zsh配置片段
-
-**轻量化配置**（推荐，不使用 Oh My Zsh）：
-
-```bash
-# ~/.zshrc - 现代轻量化配置
+# ~/.zshrc
 
 # 命令补全
 autoload -Uz compinit && compinit
@@ -1036,25 +89,390 @@ source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh
 
 # 历史配置
-setopt HIST_FIND_NO_DUPS HIST_IGNORE_DUPS SHARE_HISTORY
-HISTSIZE=10000 SAVEHIST=10000
+setopt HIST_FIND_NO_DUPS
+setopt HIST_IGNORE_DUPS
+setopt SHARE_HISTORY
+HISTSIZE=10000
+SAVEHIST=10000
 
-# 提示符（starship）
+# 提示符
 eval "$(starship init zsh)"
 
 # 目录跳转
 eval "$(zoxide init zsh)"
 
-# Node.js 版本管理
-eval "$(fnm env --use-on-cd)"
+# 以下配置已包含在一键安装脚本中，无需手动添加
+# eval "$(fzf --zsh)"
+# eval "$(fnm env --use-on-cd)"
+# eval "$(atuin init zsh)"
+# alias cat='bat' ls='eza --git --icons' ll='eza -lah --git --icons'
+# alias tree='eza --tree' find='fd' grep='rg'
+# alias du='duf' df='duf' top='btop'
+# alias git='lazygit' docker='lazydocker'
+```
 
-# 命令历史
-eval "$(atuin init zsh)"
+## 5. 安装 Raycast
 
-# 模糊查找
+> macOS 启动器，Alfred 的现代替代品，内置窗口管理、剪贴板历史、计算器等功能
+
+```bash
+brew install --cask raycast
+```
+
+### 列出已安装的 Raycast 扩展
+
+```shpython3 -c "import os, json, glob; [print(f"- {json.load(open(f)).get('title')}") for f in glob.glob(os.path.expanduser('~/.config/raycast/extensions/*/package.json')) if json.load(open(f)).get('owner') != 'raycast']"
+
+```
+
+### 核心功能
+
+| 功能           | 说明                               |
+| -------------- | ---------------------------------- |
+| **启动器**     | 应用搜索、文件搜索、计算、单位换算 |
+| **窗口管理**   | 内置分屏功能，替代 Rectangle       |
+| **剪贴板历史** | 记录剪贴板内容，支持搜索和固定     |
+| **扩展市场**   | 700+ 扩展，生态丰富                |
+| **快捷指令**   | 自定义命令，集成工作流             |
+
+### 推荐配置
+
+1. **快捷键**: `Cmd+Space` 呼出
+2. **窗口管理**: 安装 `Window Management` 扩展
+3. **剪贴板**: 安装 `Clipboard History` 扩展
+4. **GitHub**: 安装扩展快速搜索仓库
+5. **系统操作**: 睡眠、锁屏、音量控制
+
+### 推荐扩展
+
+- **Window Management**: 窗口分屏、最大化、居中
+- **Clipboard History**: 剪贴板历史管理
+- **Quick Notes**: 快速创建笔记
+- **GitHub**: 搜索仓库、PR、Issues
+- **Terminal Notifier**: 命令完成通知
+- **Color Picker**: 取色器
+- **Emoji Search**: 表情符号搜索
+
+## 6. 安装终端模拟器
+
+> 终端运行环境，推荐 Ghostty（快、稳定、跨平台）
+
+```bash
+brew install --cask ghostty
+```
+
+## 7. 安装核心 CLI 工具
+
+| 工具        | 用途                         |
+| ----------- | ---------------------------- |
+| **bat**     | cat 替代，带语法高亮和行号   |
+| **eza**     | ls 替代，支持 Git 状态和图标 |
+| **fd**      | find 替代，速度快 10-100 倍  |
+| **ripgrep** | grep 替代，极速搜索          |
+| **fzf**     | 模糊搜索，快速定位文件       |
+| **zoxide**  | 智能目录跳转，记住常用目录   |
+| **jq**      | JSON 处理和格式化            |
+| **jc**      | 将命令输出转为 JSON          |
+| **btop**    | top 替代，美观的进程监控     |
+| **duf**     | du/df 替代，直观显示磁盘使用 |
+| **ncdu**    | 交互式磁盘清理               |
+| **httpie**  | HTTP 客户端，比 curl 更简单  |
+| **dog**     | DNS 查询，比 dig 更直观      |
+| **atuin**   | 命令历史管理，支持搜索和同步 |
+
+```bash
+brew install bat eza fd ripgrep fzf zoxide jq jc
+brew install btop duf ncdu httpie dog atuin
+```
+
+## 8. 安装版本管理工具
+
+| 工具     | 用途                              |
+| -------- | --------------------------------- |
+| **fnm**  | Node.js 版本管理，比 nvm 快       |
+| **asdf** | 多语言版本管理（Python、Ruby 等） |
+
+```bash
+brew install fnm asdf
+```
+
+## 9. 安装 Git 工具
+
+| 工具        | 用途                          |
+| ----------- | ----------------------------- |
+| **lazygit** | Git TUI，交互式操作           |
+| **gh**      | GitHub CLI，管理 PR 和 Issues |
+
+```bash
+brew install lazygit gh
+```
+
+## 10. 安装 Docker 工具
+
+> 容器化开发环境
+
+```bash
+brew install --cask docker
+brew install lazydocker
+```
+
+## 11. 安装数据库客户端
+
+| 工具        | 用途                           |
+| ----------- | ------------------------------ |
+| **pgcli**   | PostgreSQL CLI，自动补全和高亮 |
+| **litecli** | SQLite CLI                     |
+| **mycli**   | MySQL CLI                      |
+
+```bash
+brew install pgcli litecli mycli
+```
+
+## 12. 安装编辑器
+
+> Helix：现代编辑器，模态编辑（Vim 风格），开箱即用
+
+```bash
+brew install helix
+```
+
+## 13. 安装通知工具
+
+> 任务完成后自动提醒，无需等待
+
+```bash
+brew install noti terminal-notifier
+```
+
+## 14. 安装系统工具
+
+| 工具              | 用途                           |
+| ----------------- | ------------------------------ |
+| **fastfetch**     | 系统信息展示，比 neofetch 更快 |
+| **pv**            | 显示管道数据传输进度           |
+| **progress**      | 显示 cp/mv/dd 等命令进度       |
+| **speedtest-cli** | 网络测速                       |
+| **taskwarrior**   | 命令行任务管理                 |
+| **timewarrior**   | 时间跟踪                       |
+
+```bash
+brew install fastfetch pv progress speedtest-cli
+brew install task timewarrior
+```
+
+## 15. 安装配置管理
+
+> Chezmoi：管理 dotfiles，跨设备同步配置
+
+```bash
+brew install chezmoi
+chezmoi init
+```
+
+## 16. 安装 Chrome 浏览器插件
+
+> 在 Chrome 网上应用店搜索以下插件名安装
+
+| 插件                      | 说明                                                           |
+| ------------------------- | -------------------------------------------------------------- |
+| **Obsidian Web Clipper**  | 将网页内容（文章、图片）保存到 Obsidian 知识库，支持高亮和标注 |
+| **React Developer Tools** | React 组件树查看器、Props/State 检查、性能分析                 |
+| **Save All Resources**    | 一键下载页面所有资源（图片、JS、CSS、字体），保留目录结构      |
+| **SVG Downloader**        | 识别页面中所有 SVG，一键打包下载为 ZIP                         |
+| **Copy as Markdown**      | 将链接、图片转为 Markdown 格式（`[title](url)`），复制到剪贴板 |
+| **Star History**          | 在 GitHub 仓库页面显示 Star 增长曲线图                         |
+| **Playwright MCP**        | 通过 MCP 协议用 AI（Cursor/Claude/VS Code）控制浏览器          |
+| **Subtle White**          | 护眼主题，将亮色网页转为柔和白色背景                           |
+| **Video Screenshot**      | 视频帧截图工具，支持 Netflix/YouTube 等平台                    |
+
+## 17. 安装 VSCode 插件
+
+### AI 工具
+
+| 插件                    | 说明                                     |
+| ----------------------- | ---------------------------------------- |
+| **Claude Code**         | Claude AI 编程助手，代码生成、重构、解释 |
+| **GitHub Copilot**      | 代码自动补全，AI 根据上下文预测代码      |
+| **GitHub Copilot Chat** | AI 对话编程，解释代码、生成单元测试      |
+| **Roo Cline**           | AI 代码助手，支持多种模型，可编辑文件    |
+| **ChatGPT**             | 集成 ChatGPT，快速查询和生成代码         |
+
+### 编程语言
+
+| 插件                          | 说明                                  |
+| ----------------------------- | ------------------------------------- |
+| **Python**                    | Python 语言支持、代码分析、调试       |
+| **Pylance**                   | Python 类型检查、智能补全、代码导航   |
+| **Volar**                     | Vue 3 语言服务，类型推断、组件提示    |
+| **ESLint**                    | JS/TS 代码检查，发现潜在问题          |
+| **Prettier**                  | 代码格式化，保持代码风格一致          |
+| **Tailwind CSS IntelliSense** | Tailwind 类名自动补全、预览、颜色显示 |
+
+### 开发效率
+
+| 插件                         | 说明                                                |
+| ---------------------------- | --------------------------------------------------- |
+| **GitLens**                  | Git 可视化，显示代码行作者、历史、比较分支          |
+| **Turbo Console Log**        | 选中变量，一键生成 `console.log(message, variable)` |
+| **npm Intellisense**         | import 语句自动补全 npm 包名                        |
+| **Path Intellisense**        | 文件路径自动补全                                    |
+| **Rainbow CSV**              | CSV 文件列高亮、列名提示、对齐显示                  |
+| **Todo Tree**                | 高亮 `TODO`、`FIXME` 等标记，快速跳转               |
+| **Pretty TypeScript Errors** | TS 错误信息格式化，更易读                           |
+| **Error Lens**               | 代码错误/警告直接在行上显示                         |
+
+### 代码片段
+
+| 插件                    | 说明                                          |
+| ----------------------- | --------------------------------------------- |
+| **ES7+ React Snippets** | React/Redux/React Native 代码片段（rafce 等） |
+| **Auto Close Tag**      | 输入 HTML 标签时自动补全闭合标签              |
+| **Auto Rename Tag**     | 修改 HTML/JSX 开始标签时，自动重命名闭合标签  |
+
+### 主题图标
+
+| 插件                    | 说明                           |
+| ----------------------- | ------------------------------ |
+| **Dracula Official**    | 深色主题，紫色调护眼           |
+| **Atom One Light**      | 浅色主题，清新明亮             |
+| **Material Icon Theme** | 文件类型图标，视觉区分文件     |
+| **Alabaster**           | 极简浅色主题，低对比度         |
+| **Indent Rainbow**      | 缩进用不同颜色显示，对齐可视化 |
+
+### 文档工具
+
+| 插件                         | 说明                              |
+| ---------------------------- | --------------------------------- |
+| **Markdown Preview Mermaid** | Markdown 预览支持 Mermaid 流程图  |
+| **Markdown All in One**      | Markdown 快捷键、目录、表格格式化 |
+| **MDX**                      | MDX 文件语法高亮和预览            |
+
+### 远程开发
+
+| 插件                  | 说明                          |
+| --------------------- | ----------------------------- |
+| **Remote Containers** | 在 Docker 容器内开发          |
+| **Remote SSH**        | SSH 连接远程服务器开发        |
+| **Docker**            | Docker 容器/镜像/网络管理面板 |
+| **Kubernetes**        | K8s 资源管理、YAML 校验       |
+
+### 其他
+
+| 插件             | 说明                                      |
+| ---------------- | ----------------------------------------- |
+| **EditorConfig** | 跨编辑器配置（缩进、换行符等）            |
+| **Live Server**  | 本地开发服务器，文件保存自动刷新          |
+| **gitignore**    | 生成 `.gitignore` 文件，支持多种语言/框架 |
+| **XML Tools**    | XML 格式化、XPath 查询                    |
+| **YAML**         | YAML 语法高亮、校验                       |
+| **Vim**          | VSCode 中的 Vim 模拟                      |
+| **CodeSnap**     | 代码截图美化工具                          |
+
+```bash
+# 一键安装所有 VSCode 插件
+code --install-extension adpyke.codesnap
+code --install-extension akamud.vscode-theme-onelight
+code --install-extension anthropic.claude-code
+code --install-extension bierner.markdown-mermaid
+code --install-extension bradlc.vscode-tailwindcss
+code --install-extension chakrounanas.turbo-console-log
+code --install-extension christian-kohler.npm-intellisense
+code --install-extension christian-kohler.path-intellisense
+code --install-extension codezombiech.gitignore
+code --install-extension dbaeumer.vscode-eslint
+code --install-extension dotjoshjohnson.xml
+code --install-extension dracula-theme.theme-dracula
+code --install-extension dsznajder.es7-react-js-snippets
+code --install-extension eamodio.gitlens
+code --install-extension ecmel.vscode-html-css
+code --install-extension editorconfig.editorconfig
+code --install-extension esbenp.prettier-vscode
+code --install-extension formulahendry.auto-close-tag
+code --install-extension formulahendry.auto-rename-tag
+code --install-extension github.copilot
+code --install-extension github.copilot-chat
+code --install-extension github.vscode-github-actions
+code --install-extension github.vscode-pull-request-github
+code --install-extension gruntfuggly.todo-tree
+code --install-extension jock.svg
+code --install-extension mechatroner.rainbow-csv
+code --install-extension mhutchie.git-graph
+code --install-extension ms-azuretools.vscode-docker
+code --install-extension ms-python.python
+code --install-extension ms-python.vscode-pylance
+code --install-extension ms-toolsai.jupyter
+code --install-extension ms-vscode-remote.remote-containers
+code --install-extension ms-vscode-remote.remote-ssh
+code --install-extension oderwat.indent-rainbow
+code --install-extension openai.chatgpt
+code --install-extension pkief.material-icon-theme
+code --install-extension redhat.vscode-yaml
+code --install-extension ritwickdey.liveserver
+code --install-extension rooveterinaryinc.roo-cline
+code --install-extension tamasfe.even-better-toml
+code --install-extension tonsky.theme-alabaster
+code --install-extension unifiedjs.vscode-mdx
+code --install-extension usernamehw.errorlens
+code --install-extension vscodevim.vim
+code --install-extension vue.volar
+code --install-extension yzhang.markdown-all-in-one
+```
+
+## 一键安装脚本
+
+```bash
+#!/bin/bash
+set -e
+
+# Homebrew
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# 核心工具
+brew install git delta bat eza fd ripgrep fzf zoxide jq jc
+brew install btop duf ncdu httpie dog atuin
+brew install zsh-syntax-highlighting zsh-autosuggestions starship
+brew install fnm asdf lazygit gh lazydocker
+brew install pgcli litecli mycli helix
+brew install noti terminal-notifier
+brew install fastfetch pv progress speedtest-cli
+brew install task timewarrior chezmoi
+
+# cask
+brew install --cask ghostty docker
+
+# 配置 ~/.zshrc
+cat >> ~/.zshrc << 'EOF'
+
+# 命令补全
+autoload -Uz compinit && compinit
+
+# 语法高亮和历史建议
+source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+
+# 历史配置
+setopt HIST_FIND_NO_DUPS
+setopt HIST_IGNORE_DUPS
+setopt SHARE_HISTORY
+HISTSIZE=10000
+SAVEHIST=10000
+
+# 提示符
+eval "$(starship init zsh)"
+
+# 目录跳转
+eval "$(zoxide init zsh)"
+
+# fzf 模糊搜索
 eval "$(fzf --zsh)"
 
-# 命令别名（现代替代）
+# fnm Node.js 版本管理
+eval "$(fnm env --use-on-cd)"
+
+# atuin 命令历史
+eval "$(atuin init zsh)"
+
+# 命令别名（现代 CLI 工具替代）
 alias cat='bat'
 alias ls='eza --git --icons'
 alias ll='eza -lah --git --icons'
@@ -1062,203 +480,52 @@ alias tree='eza --tree'
 alias find='fd'
 alias grep='rg'
 alias du='duf'
-alias top='btop'
 alias df='duf'
+alias top='btop'
 alias git='lazygit'
 alias docker='lazydocker'
+EOF
+
+echo "安装完成，已配置 ~/.zshrc"
 ```
 
-**Oh My Zsh 配置**（传统方案）：
+## 工具速查
 
-```bash
-# ~/.zshrc - Oh My Zsh 配置
+### 命令行工具
 
-# 命令别名（现代替代）
-alias cat='bat'
-alias ls='eza --git --icons'
-alias ll='eza -lah --git --icons'
-alias find='fd'
-alias grep='rg'
-alias du='duf'
-alias top='btop'
-alias git='lazygit'
+| 场景        | 原命令   | 现代替代   |
+| ----------- | -------- | ---------- |
+| 查看文件    | cat      | bat        |
+| 列表目录    | ls       | eza        |
+| 树形目录    | tree     | eza --tree |
+| 查找文件    | find     | fd         |
+| 搜索内容    | grep     | ripgrep    |
+| 目录跳转    | cd       | zoxide     |
+| 进程监控    | top      | btop       |
+| 磁盘使用    | du/df    | duf        |
+| 磁盘清理    | -        | ncdu       |
+| Git 操作    | git      | lazygit    |
+| Git diff    | git diff | delta      |
+| Docker 操作 | docker   | lazydocker |
+| 命令历史    | Ctrl+R   | atuin      |
+| JSON 处理   | -        | jq + jc    |
+| HTTP 请求   | curl     | httpie     |
+| DNS 查询    | dig      | dog        |
 
-# fzf集成
-eval "$(fzf --zsh)"
+### 快捷键
 
-# zoxide
-eval "$(zoxide init zsh)"
+| 功能           | 快捷键   |
+| -------------- | -------- |
+| 模糊搜索文件   | Ctrl+T   |
+| 搜索命令历史   | Ctrl+R   |
+| 跳转到常用目录 | z + 名称 |
 
-# fnm
-eval "$(fnm env --use-on-cd)"
+### 常用命令
 
-# atuin
-eval "$(atuin init zsh)"
-```
-
-### 13.2 Git配置
-
-```bash
-# ~/.gitconfig
-
-[core]
-  pager = delta
-
-[interactive]
-  diffFilter = delta --color-only
-
-[delta]
-  navigate = true
-  light = false
-
-[merge]
-  conflictstyle = diff3
-
-[diff]
-  colorMoved = default
-```
-
-### 13.3 noti 配置
-
-```bash
-# ~/.config/noti/noti.yaml
-defaultprovider: terminalnotifier
-
-terminalnotifier:
-  sound: default
-  sender: com.apple.Terminal
-```
-
-## 十四、使用技巧
-
-### 14.1 AI友好的工作流
-
-**结构化输出优先**：
-
-```bash
-# 使用--json标志
-rg --json "pattern" | jq '.'
-
-# 使用jc转换
-ls | jc --ls | jq '.[] | select(.size > 1000)'
-```
-
-**管道组合**：
-
-```bash
-# 组合多个工具
-fd -e js | fzf | bat
-
-# 查找大文件
-fd -t f | xargs ls -lh | sort -k5 -h | tail -10
-```
-
-**通知集成**：
-
-```bash
-# 长任务完成后通知
-noti tar -cjf archive.tar.bz2 large_dir/
-
-# 组合使用
-make build 2>&1 | noti -t "构建结果" -m -
-
-# 测试完成后通知
-noti npm test
-
-# 在 Claude Code 中通过 hooks 自动通知
-```
-
-### 14.2 效率提升
-
-**快捷键绑定**（Zsh）：
-
-```bash
-# Ctrl+R 搜索历史（atuin）
-# Ctrl+G fzf文件搜索
-# Ctrl+O fzf目录跳转
-```
-
-**自动补全**：
-
-```bash
-# 启用所有补全
-autoload -Uz compinit && compinit
-```
-
-## 十五、学习资源
-
-### 15.1 项目地址
-
-**核心工具**：
-
-- **fd**: https://github.com/sharkdp/fd
-- **ripgrep**: https://github.com/BurntSushi/ripgrep
-- **bat**: https://github.com/sharkdp/bat
-- **eza**: https://github.com/eza-community/eza
-- **btop**: https://github.com/aristocratos/btop
-- **lazygit**: https://github.com/jesseduffield/lazygit
-- **atuin**: https://github.com/ellie/atuin
-
-**终端和Shell**：
-
-- **Ghostty**: https://github.com/mitchellh/ghostty
-- **starship**: https://github.com/starship/starship
-- **zsh-autosuggestions**: https://github.com/zsh-users/zsh-autosuggestions
-- **zsh-syntax-highlighting**: https://github.com/zsh-users/zsh-syntax-highlighting
-
-**通知系统**：
-
-- **noti**: https://github.com/variadico/noti
-- **terminal-notifier**: https://github.com/julienXX/terminal-notifier
-
-**系统工具**：
-
-- **fastfetch**: https://github.com/fastfetch-cli/fastfetch
-- **taskwarrior**: https://github.com/GothenburgBitFactory/taskwarrior
-- **pv**: https://www.ivarch.com/programs/pv.shtml
-
-### 15.2 相关阅读
-
-- **Modern Unix**: https://github.com/ibraheemdev/modern-unix
-- **Awesome CLI**: https://github.com/agarrharr/awesome-cli-apps
-- **terminal-notifier + Claude Code**: https://www.andreagrandi.it/posts/using-terminal-notifier-claude-code-custom-notifications/
-
-## 总结
-
-现代本地开发工具链的核心特点是：**更快、更强、更AI友好**。
-
-**关键要点**：
-
-1. **输出结构化**：选择能输出结构化数据的工具，便于AI解析
-2. **默认智能**：工具应该开箱即用，自动处理常见场景
-3. **速度优先**：Rust/Go实现的新工具远快于传统工具
-4. **人性化的语法**：简单直观的命令让AI更容易生成
-
-**从传统到现代的迁移路径**：
-
-```
-第一阶段：核心替换
-cat → bat, ls → eza, grep → rg, find → fd
-
-第二阶段：增强工具
-top → btop, git → lazygit, docker → lazydocker
-iTerm2 → Ghostty, nvm → fnm, neofetch → fastfetch
-
-第三阶段：AI集成与通知
-atuin历史管理，jc结构化输出，noti通知系统，Claude Code hooks
-
-第四阶段：效率提升
-taskwarrior任务管理，pv进度显示，zoxide智能跳转
-```
-
-**2025年推荐的核心配置**：
-
-```bash
-# 终端：Ghostty（最快）
-# Shell：轻量化 Zsh + starship（无 Oh My Zsh）
-# 通知：noti + terminal-notifier + Claude Code hooks
-# Node.js：fnm（代替 nvm）
-# 系统信息：fastfetch（代替 neofetch）
-```
-
-记住，工具的目的是提升效率，不是炫耀配置。选择适合自己工作流的工具，持续优化，让AI成为你的加速器。
+| 功能          | 命令           |
+| ------------- | -------------- |
+| 显示 Git 状态 | eza -lah --git |
+| 查找文件      | fd "name"      |
+| 搜索代码      | rg "pattern"   |
+| 查看磁盘      | duf            |
+| 查看进程      | btop           |

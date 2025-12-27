@@ -1,0 +1,158 @@
+---
+title: 'macOS 常用软件指南'
+date: '2025-12-27'
+tags: ['macos', 'software', 'productivity']
+draft: false
+summary: 'macOS 常用软件推荐，按使用场景分类。'
+---
+
+# macOS 常用软件指南
+
+> 本文持续更新，推荐安装顺序。
+
+## 工具哲学
+
+**约定大于配置，现代化，速度快**
+
+选择工具的标准：
+
+- 默认行为符合直觉，无需大量配置
+- 积极维护，社区活跃
+- 性能优先，原生应用优先
+- 隐私保护
+
+---
+
+## 1. 系统工具
+
+### 解压
+
+```bash
+brew install --cask the-unarchiver
+```
+
+免费开源的解压工具，支持 zip, 7z, rar 等格式。
+
+### 系统清理 - Mole
+
+```bash
+brew install tw93/tap/mole
+```
+
+开源系统清理工具，由国内开发者出品。
+
+功能：
+
+- 系统垃圾清理
+- 应用缓存清理
+- 隐私数据清除
+- 轻量快速
+
+---
+
+## 2. 效率工具
+
+### 启动器 - Raycast
+
+```bash
+brew install --cask raycast
+```
+
+macOS 启动器，Alfred 的现代替代品。
+
+**推荐扩展**：
+
+- Window Management: 窗口管理
+- Clipboard History: 剪贴板历史
+- Color Picker: 取色器
+- Emoji Search: 表情符号
+- GitHub: 仓库搜索
+
+### 截图工具 - Shottr
+
+```bash
+brew install --cask shottr
+```
+
+功能全面的截图工具，支持滚动截图、标注、贴图。
+
+---
+
+## 3. 媒体工具
+
+### 视频播放
+
+```bash
+brew install --cask iina
+```
+
+免费开源的 macOS 视频播放器，简洁美观，倍速播放。
+
+### 视频下载
+
+```bash
+brew install --cask downie
+```
+
+视频下载工具，支持 1000+ 网站（B站、YouTube、抖音等）。
+
+### 视频转码
+
+```bash
+brew install --cask handbrake
+```
+
+免费开源的视频转码工具，支持几乎所有格式。
+
+### 直播录制 - OBS
+
+```bash
+brew install --cask obs
+```
+
+免费开源直播录制软件，推流、录屏、虚拟摄像头。
+
+### PDF 阅读
+
+```bash
+brew install --cask skim
+```
+
+免费 PDF 阅读器，专注阅读体验。
+
+---
+
+## 4. 开发相关
+
+见 [新 macOS 开发环境安装指南](/blog/modern-local-development-kit)。
+
+---
+
+## 5. 通讯社交
+
+| 软件     | 用途     |
+| -------- | -------- |
+| 微信     | 即时通讯 |
+| QQ       | 即时通讯 |
+| 钉钉     | 办公通讯 |
+| Telegram | 加密通讯 |
+| Discord  | 社区交流 |
+| WhatsApp | 即时通讯 |
+| Teams    | 办公协作 |
+| Zoom     | 视频会议 |
+| 腾讯会议 | 视频会议 |
+
+---
+
+## 常用 CLI 工具
+
+```bash
+# 文件管理
+brew install fzf fd ripgrep bat eza
+
+# 网络工具
+brew install curl wget httpie dog
+
+# 系统工具
+brew install bottom hyperfine
+```
