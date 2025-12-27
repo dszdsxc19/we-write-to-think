@@ -3,6 +3,8 @@ const siteMetadata = {
   title: 'Terry的日记本',
   author: 'Terry',
   headerTitle: 'Terry的旅行日记',
+  // RSS 调用需要，不要删除 description
+  description: 'Terry的日记本 - 写作即思考，编程即创造',
   descriptions: [
     '写作即思考 - A blog about technology and thinking',
     '编程即创造 - Coding is creating',
