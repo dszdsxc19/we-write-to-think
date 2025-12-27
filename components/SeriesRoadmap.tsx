@@ -36,10 +36,10 @@ export default function SeriesRoadmap({ series, currentPostSlug, posts }: Series
   }, [isOpen])
 
   // Dimensions & Layout
-  const NODE_WIDTH = 300
-  const START_PADDING = 150
+  const NODE_WIDTH = 360
+  const START_PADDING = 180
   const HALF_NODE = NODE_WIDTH / 2
-  const AMPLITUDE = 80 // Increased amplitude
+  const AMPLITUDE = 120 // Increased amplitude for card spacing
   const SVG_HEIGHT = AMPLITUDE * 2 + 200
   const CENTER_Y = SVG_HEIGHT / 2
 
@@ -148,21 +148,25 @@ export default function SeriesRoadmap({ series, currentPostSlug, posts }: Series
                     strokeWidth="4"
                     strokeLinecap="round"
                     filter="url(#glow)"
-                    initial={{ pathLength: 0 }}
-                    animate={{ pathLength: 1 }}
+                    initial={{ pathLength: 0, opacity: 0.8 }}
+                    animate={{ pathLength: 1, opacity: [0.8, 1, 0.8] }}
                     transition={{
-                      duration: Math.max(3, seriesPosts.length * 0.5),
-                      ease: 'easeInOut',
-                      repeat: Infinity,
-                      repeatType: 'loop',
-                      repeatDelay: 1,
+                      pathLength: {
+                        duration: Math.max(2, seriesPosts.length * 0.4),
+                        ease: 'easeInOut',
+                      },
+                      opacity: {
+                        duration: 3,
+                        repeat: Infinity,
+                        ease: 'easeInOut',
+                      },
                     }}
                   />
                   <defs>
                     <linearGradient id="beam-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stopColor="#3b82f6" /> {/* Blue */}
-                      <stop offset="50%" stopColor="#8b5cf6" /> {/* Violet */}
-                      <stop offset="100%" stopColor="#ec4899" /> {/* Pink */}
+                      <stop offset="0%" stopColor="#06b6d4" /> {/* Cyan */}
+                      <stop offset="50%" stopColor="#0ea5e9" /> {/* Sky */}
+                      <stop offset="100%" stopColor="#3b82f6" /> {/* Blue */}
                     </linearGradient>
                     <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
                       <feGaussianBlur stdDeviation="4" result="coloredBlur" />
@@ -201,7 +205,7 @@ export default function SeriesRoadmap({ series, currentPostSlug, posts }: Series
                           className={twMerge(
                             'relative z-20 flex h-12 w-12 items-center justify-center rounded-full border-4 shadow-lg transition-all duration-500',
                             isCurrent
-                              ? 'border-white bg-gradient-to-br from-blue-500 to-purple-600 text-white ring-4 shadow-blue-500/50 ring-blue-500/20 dark:border-gray-900'
+                              ? 'border-white bg-gradient-to-br from-cyan-500 to-blue-600 text-white ring-4 shadow-cyan-500/50 ring-cyan-500/20 dark:border-gray-900'
                               : isPast
                                 ? 'border-white bg-gray-900 text-white dark:border-gray-800 dark:bg-gray-700'
                                 : 'border-gray-200 bg-white text-gray-400 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-600'
@@ -218,27 +222,25 @@ export default function SeriesRoadmap({ series, currentPostSlug, posts }: Series
                         </motion.div>
                       </Link>
 
-                      {/* Info Card (Hover or Current) */}
+                      {/* Info Card (Always Visible) */}
                       <div
                         className={twMerge(
-                          'pointer-events-none absolute w-72 p-1 transition-all duration-300',
+                          'absolute w-72 p-1 transition-all duration-300',
                           isEven ? 'top-16' : 'bottom-16',
-                          isCurrent
-                            ? 'pointer-events-auto z-10 opacity-100'
-                            : 'z-0 opacity-0 group-hover:pointer-events-auto group-hover:z-30 group-hover:opacity-100'
+                          isCurrent ? 'z-20' : 'z-10'
                         )}
                       >
                         <div
                           className={twMerge(
-                            'relative overflow-hidden rounded-2xl border bg-white/80 p-5 shadow-2xl backdrop-blur-md transition-all dark:bg-gray-900/80',
+                            'relative overflow-hidden rounded-2xl border bg-white/80 p-5 shadow-xl backdrop-blur-md transition-all dark:bg-gray-900/80',
                             isCurrent
-                              ? 'border-blue-500/30 dark:border-blue-400/30'
-                              : 'border-white/20 dark:border-gray-700/50'
+                              ? 'border-cyan-500/40 shadow-cyan-500/20 dark:border-cyan-400/40'
+                              : 'border-gray-200/50 dark:border-gray-700/50'
                           )}
                         >
                           {/* Decorate gradient for current */}
                           {isCurrent && (
-                            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5" />
+                            <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-blue-500/5" />
                           )}
 
                           <div className="relative">
@@ -247,7 +249,7 @@ export default function SeriesRoadmap({ series, currentPostSlug, posts }: Series
                                 className={twMerge(
                                   'rounded-full px-2 py-0.5',
                                   isCurrent
-                                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+                                    ? 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300'
                                     : 'bg-gray-100 dark:bg-gray-800'
                                 )}
                               >
