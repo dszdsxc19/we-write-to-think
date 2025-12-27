@@ -84,10 +84,8 @@ const computedFields: ComputedFields = {
       if (pathParts.length >= 2 && (pathParts[1] === 'en' || pathParts[1] === 'zh')) {
         pathParts.splice(1, 1)
       }
-      // Remove the first segment (blog/ or authors/) for cleaner paths
-      if (pathParts[0] === 'blog' || pathParts[0] === 'authors') {
-        pathParts.shift()
-      }
+      // Keep the first segment (blog/ or authors/) for correct routing
+      // The path will be like 'blog/modern-local-development-kit'
       return pathParts.join('/')
     },
   },

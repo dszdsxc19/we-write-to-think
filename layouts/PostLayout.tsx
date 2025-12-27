@@ -14,19 +14,13 @@ import ScrollTopAndComment from '@/components/ScrollTopAndComment'
 import { useTranslations } from 'next-intl'
 import { useParams } from 'next/navigation'
 import TableOfContents from '@/components/TableOfContents'
+import { formatDate } from 'pliny/utils/formatDate'
 import MermaidLoader from '@/components/MermaidLoader'
 import SeriesRoadmap from '@/components/SeriesRoadmap'
 
 const editUrl = (path) => `${siteMetadata.siteRepo}/blob/main/data/${path}`
 const discussUrl = (path) =>
   `https://mobile.twitter.com/search?q=${encodeURIComponent(`${siteMetadata.siteUrl}/${path}`)}`
-
-const postDateTemplate: Intl.DateTimeFormatOptions = {
-  weekday: 'long',
-  year: 'numeric',
-  month: 'long',
-  day: 'numeric',
-}
 
 interface LayoutProps {
   content: CoreContent<Blog>
@@ -65,9 +59,7 @@ export default function PostLayout({
                 <div>
                   <dt className="sr-only">{t('publishedOn')}</dt>
                   <dd className="text-base leading-6 font-medium text-gray-500 dark:text-gray-400">
-                    <time dateTime={date}>
-                      {new Date(date).toLocaleDateString(siteMetadata.locale, postDateTemplate)}
-                    </time>
+                    <time dateTime={date}>{formatDate(date, locale)}</time>
                   </dd>
                 </div>
               </dl>
@@ -166,7 +158,7 @@ export default function PostLayout({
                           {t('previousArticle')}
                         </h2>
                         <div className="text-primary-500 hover:text-primary-600 dark:hover:text-primary-400">
-                          <Link href={`/blog/${prev.path}`}>{prev.title}</Link>
+                          <Link href={`/${prev.path}`}>{prev.title}</Link>
                         </div>
                       </div>
                     )}
@@ -176,7 +168,7 @@ export default function PostLayout({
                           {t('nextArticle')}
                         </h2>
                         <div className="text-primary-500 hover:text-primary-600 dark:hover:text-primary-400">
-                          <Link href={`/blog/${next.path}`}>{next.title}</Link>
+                          <Link href={`/${next.path}`}>{next.title}</Link>
                         </div>
                       </div>
                     )}
