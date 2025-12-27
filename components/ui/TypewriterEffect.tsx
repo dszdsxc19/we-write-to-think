@@ -1,8 +1,8 @@
-"use client";
+'use client'
 
-import { cn } from "@/lib/utils";
-import { motion, stagger, useAnimate, useInView } from "framer-motion";
-import { useEffect } from "react";
+import { cn } from '@/lib/utils'
+import { motion, stagger, useAnimate, useInView } from 'framer-motion'
+import { useEffect } from 'react'
 
 export const TypewriterEffect = ({
   words,
@@ -11,45 +11,45 @@ export const TypewriterEffect = ({
   onComplete,
 }: {
   words: {
-    text: string;
-    className?: string;
-  }[];
-  className?: string;
-  cursorClassName?: string;
-  onComplete?: () => void;
+    text: string
+    className?: string
+  }[]
+  className?: string
+  cursorClassName?: string
+  onComplete?: () => void
 }) => {
   // split text inside of words into array of characters
   const wordsArray = words.map((word) => {
     return {
       ...word,
-      text: word.text.split(""),
-    };
-  });
+      text: word.text.split(''),
+    }
+  })
 
-  const [scope, animate] = useAnimate();
-  const isInView = useInView(scope);
+  const [scope, animate] = useAnimate()
+  const isInView = useInView(scope)
   useEffect(() => {
     if (isInView) {
       const controls = animate(
-        "span",
+        'span',
         {
-          display: "inline-block",
+          display: 'inline-block',
           opacity: 1,
-          width: "fit-content",
+          width: 'fit-content',
         },
         {
           duration: 0.3,
           delay: stagger(0.1),
-          ease: "easeInOut",
+          ease: 'easeInOut',
         }
-      );
+      )
       if (onComplete) {
         controls.then(() => {
-            onComplete();
-        });
+          onComplete()
+        })
       }
     }
-  }, [isInView, animate, onComplete, words]);
+  }, [isInView, animate, onComplete, words])
 
   const renderWords = () => {
     return (
@@ -61,28 +61,20 @@ export const TypewriterEffect = ({
                 <motion.span
                   initial={{}}
                   key={`char-${index}`}
-                  className={cn(
-                    `opacity-0 hidden`,
-                    word.className
-                  )}
+                  className={cn(`hidden opacity-0`, word.className)}
                 >
                   {char}
                 </motion.span>
               ))}
               &nbsp;
             </div>
-          );
+          )
         })}
       </motion.div>
-    );
-  };
+    )
+  }
   return (
-    <div
-      className={cn(
-        "font-bold text-center",
-        className
-      )}
-    >
+    <div className={cn('text-center font-bold', className)}>
       {renderWords()}
       <motion.span
         initial={{
@@ -94,14 +86,11 @@ export const TypewriterEffect = ({
         transition={{
           duration: 0.8,
           repeat: Infinity,
-          repeatType: "mirror",
-          ease: "easeInOut"
+          repeatType: 'mirror',
+          ease: 'easeInOut',
         }}
-        className={cn(
-          "inline-block rounded-sm w-[4px] h-4 bg-blue-500",
-          cursorClassName
-        )}
+        className={cn('inline-block h-4 w-[4px] rounded-sm bg-blue-500', cursorClassName)}
       ></motion.span>
     </div>
-  );
-};
+  )
+}
