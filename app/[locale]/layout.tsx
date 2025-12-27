@@ -15,6 +15,9 @@ import { getMessages } from 'next-intl/server'
 import { routing } from '@/navigation'
 import { notFound } from 'next/navigation'
 
+import { Analytics as VercelAnalytics } from '@vercel/analytics/next'
+import { SpeedInsights } from '@vercel/speed-insights/next'
+
 const space_grotesk = Space_Grotesk({
   subsets: ['latin'],
   display: 'swap',
@@ -119,7 +122,9 @@ export default async function LocaleLayout({
       <body className="bg-white pl-[calc(100vw-100%)] text-black antialiased dark:bg-gray-950 dark:text-white">
         <NextIntlClientProvider messages={messages}>
           <ThemeProviders>
+            <SpeedInsights></SpeedInsights>
             <Analytics analyticsConfig={siteMetadata.analytics as AnalyticsConfig} />
+            <VercelAnalytics />
             <SectionContainer>
               <SearchProvider searchConfig={siteMetadata.search as SearchConfig}>
                 <Header />
