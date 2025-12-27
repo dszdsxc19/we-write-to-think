@@ -36,7 +36,7 @@ export default function MermaidLoader() {
           // Create wrapper div
           const wrapper = document.createElement('div')
           wrapper.className =
-            'mermaid-wrapper my-4 overflow-x-auto rounded-lg bg-gray-50 p-4 dark:bg-gray-800'
+            'mermaid-wrapper my-4 flex justify-center overflow-x-auto rounded-lg bg-gray-50 p-4 dark:bg-gray-800'
           wrapper.innerHTML = svg
 
           // Replace the pre block with the wrapper
