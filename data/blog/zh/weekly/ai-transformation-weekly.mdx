@@ -1,0 +1,175 @@
+---
+title: AI 正在快速变革：我们在巨震时代探索新工作流
+date: 2025-12-27
+tags: [AI, 工作流, 变革, 思考]
+summary: 每个人都在探索新的工作流，我们正处于一个巨大的变革时代
+---
+
+AI 正在快速变革，每个人都在探索新的工作流，我们正处于一个巨大的变革时代。
+
+## 从未感觉如此落后
+
+> I've never felt this much behind as a programmer. The profession is being dramatically refactored as the bits contributed by the programmer are increasingly sparse and between. I have a sense that I could be 10X more powerful if I just properly string together what has become available over the last ~year and a failure to claim the boost feels decidedly like skill issue.
+
+作为一名程序员，我从未感觉自己如此落后。这个职业正在经历剧烈的重构，程序员贡献的代码片段变得越来越稀疏。我有一种感觉，如果我能够恰当地组合过去一年左右出现的新工具，我的效率可以提升 10 倍，而没能获得这种提升的感觉，简直像是一种技能缺陷。
+
+## 新的可编程抽象层
+
+> There's a new programmable layer of abstraction to master (in addition to the usual layers below) involving agents, subagents, their prompts, contexts, memory, modes, permissions, tools, plugins, skills, hooks, MCP, LSP, slash commands, workflows, IDE integrations, and a need to build an all-encompassing mental model for strengths and pitfalls of fundamentally stochastic, fallible, unintelligible and changing entities suddenly intermingled with what used to be good old fashioned engineering.
+
+除了传统的技术层级，现在需要掌握一个新的可编程抽象层：
+
+- **智能体与子智能体**（agents, subagents）
+- **提示词与上下文**（prompts, contexts）
+- **记忆与模式**（memory, modes）
+- **权限与工具**（permissions, tools）
+- **插件与技能**（plugins, skills）
+- **钩子与协议**（hooks, MCP, LSP）
+- **命令与集成**（slash commands, workflows, IDE integrations）
+
+我们需要建立一个全面的思维模型，来理解这些根本上是随机的、可能出错的、难以理解的且不断变化的实体，它们突然与传统工程交织在一起。
+
+## 无说明书的外星工具
+
+> Clearly some powerful alien tool was handed around except it comes with no manual and everyone has to figure out how to hold it and operate it, while the resulting magnitude 9 earthquake is rocking the profession. Roll up your sleeves to not fall behind.
+
+很明显，某种强大的外星工具被分发到了每个人手中，但它没有任何说明书，每个人都必须自己弄清楚如何握持和操作它，与此同时，这场 9 级地震正在震撼整个行业。挽起袖子，不要掉队。
+
+## 调试思维方式的转变
+
+说实话，我几乎每周都会有这种感觉。有时候我会尝试手动解决问题，但又不得不提醒自己"Claude 应该可以搞定"。
+
+最近我们在调试 Claude Code 的一个内存泄漏问题，我开始用老办法：连接性能分析器，运行应用，暂停性能分析器，手动查看堆分配情况。我的同事也遇到了同样的问题，他直接让 Claude 生成堆转储，然后读取转储文件查找不应该存在的保留对象；Claude 一举解决了问题，并提交了一个 PR。这种情况几乎每周都会发生。
+
+## 打破旧思维
+
+> In a way, newer coworkers and even new grads that don't make all sorts of assumptions about what the model can and can't do — legacy memories formed when using old models — are able to use the model most effectively. It takes significant mental work to re-adjust to what the model can do every month or two, as models continue to become better and better at coding and engineering.
+
+从某种意义上说，那些没有对模型功能做出各种假设（例如，没有使用旧模型时形成的固有思维模式）的新同事，甚至应届毕业生，都能更有效地使用模型。
+
+随着模型在编码和工程方面不断改进，每隔一两个月就需要重新适应模型的功能，这需要耗费大量的精力。
+
+## 我的亲身经历：三个月的差距
+
+这种变化并非抽象概念，我在自己的博客模板开发过程中亲身经历了这一切。
+
+**八、九月：尝试与受挫**
+
+当时我使用 Juice 和 Cursor 等 AI 工具，尝试基于这个博客模板添加新功能：
+
+- 国际化语言切换
+- Mermaid 图表支持
+- 打字机英雄效果
+- 系列文章路线图
+
+结果？经常出错。AI 会生成看似合理的代码，但运行后总有各种问题：
+
+- 类型错误
+- 服务器组件和客户端组件混用
+- 样式冲突
+- i18n 路由配置错误
+
+我需要花大量时间手动调试，有时候甚至比从头写还慢。那时候我开始怀疑：AI 编程真的可行吗？
+
+**十二月：重新尝试**
+
+时隔三个月，我再次从模板开始添加新功能。这次体验完全不同：
+
+| 功能           | 八九月体验   | 十二月体验   |
+| -------------- | ------------ | ------------ |
+| 代码生成正确率 | ~50-60%      | ~90%+        |
+| 一次跑通概率   | 很低         | 很高         |
+| 调试需求       | 频繁         | 罕见         |
+| 完整链路       | 需要多轮交互 | 常常一次完成 |
+
+**关键区别：完整链路能力**
+
+现在的 AI 不再只是"生成代码片段"，而是能够完成从理解需求 → 生成代码 → 运行测试 → 发现问题 → 修复调试的**完整链路**。
+
+例如，添加 `LanguageSwitch` 组件时：
+
+```
+用户需求 → AI 理解 Next.js i18n 架构 → 生成组件代码
+→ 集成到 Header → 处理样式和动画 → 测试语言切换
+→ 发现 hydration 错误 → 修复并验证 → 完成
+```
+
+整个过程几乎不需要人工干预。
+
+**国产模型的崛起**
+
+不仅是国外模型，国产大模型的能力也在飞速提升：
+
+- **智谱（GLM）**：代码理解和生成能力显著增强，对中文上下文的理解尤为出色
+- **Minimax**：在创意写作和代码生成之间找到了良好平衡
+
+这些模型不再是"国外模型的追随者"，而是在特定场景下展现出独特优势。
+
+**结论**
+
+三个月时间，从"经常出错"到"基本一次跑通"。这不是我变聪明了，而是模型变强了。
+
+而这，仅仅三个月。
+
+## 这仍然只是开始
+
+> The last month was my first month as an engineer that I didn't open an IDE at all. Opus 4.5 wrote around 200 PRs, every single line. Software engineering is radically changing, and the hardest part even for early adopters and practitioners like us is to continue to re-adjust our expectations. And this is _still_ just the beginning.
+
+上个月是我作为工程师第一个完全没打开集成开发环境（IDE）的月份。Opus 4.5 提交了大约 200 个 PR，每一行代码都是它写的。
+
+软件工程正在发生翻天覆地的变化，即使像我们这样的早期采用者和实践者，最难的也是不断调整我们的预期。
+
+而这**仍然**只是个开始。
+
+## 我的响应：以 AI 为中心的写作理念
+
+面对这场巨变，我决定从根本上改变我的写作和记录方式。
+
+**从今天起，我的一切文章记录、心得都将以"能够被 AI 快速获取并理解"为中心。**
+
+我记录的是：以 AI 为中心，让 AI 能够理解我有足够的上下文，从而帮助我产生 10 倍生产力提升。
+
+### AI 友好文档的核心要素
+
+**1. 显式上下文（Explicit Context）**
+
+- 问题背景
+- 假设前提
+- 依赖关系
+- 约束条件
+
+**2. 清晰意图（Clear Intent）**
+
+- 我想让 AI 理解什么
+- 我希望 AI 帮助完成什么
+- 期望的输出格式
+
+**3. 结构化推理（Structured Reasoning）**
+
+- 逻辑流
+- 决策点的思考过程
+- 为什么选择 A 而不是 B
+
+**4. 可操作信息（Actionable Information）**
+
+- 具体的命令、工具、配置
+- 代码片段和它们的用途
+- 失败案例和解决方案
+
+### 写作范式的转移
+
+传统写作 → AI 友好写作
+
+| 传统写作 | AI 友好写作    |
+| -------- | -------------- |
+| 给读者看 | 给 AI 智能体看 |
+| 隐式假设 | 显式上下文     |
+| 叙事优先 | 结构优先       |
+| 模糊描述 | 精确指令       |
+| 单向传播 | 双向协作       |
+
+这不是关于"更好的文档"，而是关于**可被 AI 理解和执行的上下文**。
+
+当我记录下这些思考时，我在训练未来的自己——一个与 AI 协作的工作流。当 AI 能够理解我的上下文时，它就不再是工具，而是**放大器**。
+
+10 倍生产力不是来自 AI 单独完成工作，而是来自**AI 理解我的意图并放大我的能力**。

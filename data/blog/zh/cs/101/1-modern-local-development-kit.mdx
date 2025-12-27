@@ -1,0 +1,710 @@
+---
+title: 'macOS 现代化本地开发环境配置指南'
+date: '2025-12-27'
+tags: ['macos', 'software', 'productivity', 'setup']
+draft: false
+summary: '新电脑入手后的软件安装顺序指南，从系统工具到效率工具，从通讯软件到媒体设计工具的完整配置方案。'
+series: '现代化本地开发环境搭建'
+step: 0
+---
+
+拿到一台新 Mac 后，如何一步步配置成你的主力开发/工作机器？本文按安装优先级排序，带你快速搭建完美工作环境。
+
+> **工具哲学**：约定大于配置，现代化，速度快。选择工具的标准：默认行为符合直觉，积极维护，性能优先，原生应用优先，隐私保护。
+
+---
+
+## 第零阶段：系统准备
+
+### 0.1 基础检查
+
+```bash
+# 确认已登录 Apple ID，开启 iCloud 同步
+# 安装 Xcode Command Line Tools（包含 Git 和编译工具链）
+xcode-select --install
+```
+
+### 0.2 系统初始化脚本
+
+```bash
+#!/bin/bash
+set -e
+
+echo "🚀 开始配置 macOS..."
+
+# ==============================
+# 1. 触控板与输入 (Trackpad & Input)
+# ==============================
+echo "⚙️ 配置触控板与键盘..."
+
+# 开启"轻点点击" (Tap to click)
+defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking -bool true
+defaults write com.apple.AppleMultitouchTrackpad Clicking -bool true
+defaults -currentHost write NSGlobalDomain com.apple.mouse.tapBehavior -int 1
+
+# 开启"三指拖移" (Three finger drag)
+defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad TrackpadThreeFingerDrag -bool true
+defaults write com.apple.AppleMultitouchTrackpad TrackpadThreeFingerDrag -bool true
+
+# 设置键盘重复速度 (极速模式，适合写代码)
+defaults write NSGlobalDomain KeyRepeat -int 1
+defaults write NSGlobalDomain InitialKeyRepeat -int 10
+
+# 关闭自动更正和自动大写
+defaults write NSGlobalDomain NSAutomaticSpellingCorrectionEnabled -bool false
+defaults write NSGlobalDomain NSAutomaticCapitalizationEnabled -bool false
+
+# ==============================
+# 2. Finder 与文件管理
+# ==============================
+echo "⚙️ 配置 Finder..."
+
+# 显示所有文件扩展名
+defaults write NSGlobalDomain AppleShowAllExtensions -bool true
+
+# 显示隐藏文件
+defaults write com.apple.finder AppleShowAllFiles -bool true
+
+# 在标题栏显示完整路径
+defaults write com.apple.finder _FXShowPosixPathInTitle -bool true
+
+# 在底部显示路径栏
+defaults write com.apple.finder ShowPathbar -bool true
+
+# 禁用在网络驱动器和 USB 上创建 .DS_Store
+defaults write com.apple.desktopservices DSDontWriteNetworkStores -bool true
+defaults write com.apple.desktopservices DSDontWriteUSBStores -bool true
+
+# 允许在 Quick Look (空格预览) 中选择并复制文本
+defaults write com.apple.finder QLEnableTextSelection -bool true
+
+# ==============================
+# 3. Dock 栏与界面
+# ==============================
+echo "⚙️ 配置 Dock..."
+
+# 移除 Dock 图标弹跳动画
+defaults write com.apple.dock no-bouncing -bool true
+
+# 设置 Dock 自动隐藏延迟为 0
+defaults write com.apple.dock autohide-delay -float 0
+
+# 加快 Dock 显示/隐藏动画速度
+defaults write com.apple.dock autohide-time-modifier -float 0.15
+
+# 不在 Dock 中显示"最近使用的应用程序"
+defaults write com.apple.dock show-recents -bool false
+
+# 加速 Mission Control 动画
+defaults write com.apple.dock expose-animation-duration -float 0.1
+
+# ==============================
+# 4. 截图与系统行为
+# ==============================
+echo "⚙️ 配置截图与系统..."
+
+# 截图保存到 Downloads 文件夹
+mkdir -p "${HOME}/Downloads"
+defaults write com.apple.screencapture location -string "${HOME}/Downloads"
+
+# 截图保存为 JPG 格式 (体积更小)
+defaults write com.apple.screencapture type -string "jpg"
+
+# 截图去除阴影
+defaults write com.apple.screencapture disable-shadow -bool true
+
+# 关闭"应用程序崩溃"报告弹窗
+defaults write com.apple.CrashReporter DialogType -string "none"
+
+# 让 TextEdit 默认使用纯文本模式
+defaults write com.apple.TextEdit RichText -int 0
+
+# ==============================
+# 5. 应用更改
+# ==============================
+echo "✨ 重启相关服务以应用更改..."
+killall Finder
+killall Dock
+killall SystemUIServer
+
+echo "✅ 配置完成！"
+```
+
+### 0.3 安装 Homebrew
+
+macOS 的包管理器，绝大多数工具通过它安装。
+
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+
+### 0.4 安装 AI 助手（推荐）
+
+让 AI 帮你安装软件，无需阅读完整文档。
+
+```bash
+brew install --cask claude-code
+```
+
+参考：[Claude Code 配置指南](cs/ai-series/agentic-development/claude-code-setup)
+
+---
+
+## 第一阶段：效率工具
+
+效率工具是提升生产力的核心，优先配置。
+
+### 1.1 Raycast - 效率中枢
+
+macOS 启动器，Alfred 的现代替代品，所有效率工具的核心。
+
+```bash
+brew install --cask raycast
+```
+
+**为什么选择 Raycast**：
+
+- **免费开源**：无付费订阅，无功能限制
+- **性能优先**：原生 Swift 开发，启动极速
+- **生态丰富**：700+ 扩展，集成主流工具
+- **工作流集成**：自定义命令，API 调用，脚本支持
+
+**必装扩展配置**：
+
+| 扩展              | 功能                   | 建议快捷键  |
+| ----------------- | ---------------------- | ----------- |
+| Window Management | 窗口分屏、最大化、居中 | 自定义      |
+| Clipboard History | 剪贴板历史，支持搜索   | Cmd+Shift+V |
+| Color Picker      | 系统取色器             | Cmd+Shift+C |
+| Emoji Search      | 表情符号搜索           | Cmd+Shift+E |
+| Quick Notes       | 快速创建笔记           | Cmd+Shift+N |
+| GitHub            | 搜索仓库、PR、Issues   | Cmd+Shift+G |
+
+### 1.2 截图工具
+
+```bash
+brew install --cask shottr
+```
+
+功能全面的截图工具，支持滚动截图、标注、贴图。
+
+---
+
+## 第二阶段：系统工具
+
+新系统必备的基础工具。
+
+### 2.1 解压工具
+
+```bash
+brew install --cask the-unarchiver
+```
+
+免费开源的解压工具，支持 zip、7z、rar 等常见格式。
+
+### 2.2 系统清理
+
+```bash
+brew install tw93/tap/mole
+```
+
+开源系统清理工具，功能包括系统垃圾清理、应用缓存清理、隐私数据清除。
+
+---
+
+## 第三阶段：通讯社交
+
+日常沟通协作工具。
+
+```bash
+brew install --cask wechat qq dingtalk telegram discord whatsapp zoom tencent-meeting
+```
+
+| 软件            | 用途     |
+| --------------- | -------- |
+| 微信            | 即时通讯 |
+| QQ              | 即时通讯 |
+| 钉钉            | 办公通讯 |
+| Telegram        | 加密通讯 |
+| Discord         | 社区交流 |
+| WhatsApp        | 即时通讯 |
+| Zoom / 腾讯会议 | 视频会议 |
+
+---
+
+## 第四阶段：媒体工具
+
+### 4.1 视频播放
+
+```bash
+brew install --cask iina
+```
+
+免费开源的 macOS 视频播放器，简洁美观，支持倍速播放、在线字幕、画中画。
+
+### 4.2 视频录制
+
+```bash
+brew install --cask obs
+```
+
+免费开源直播录制软件，支持推流、录屏、虚拟摄像头。
+
+### 4.3 视频转码
+
+```bash
+brew install --cask handbrake
+```
+
+免费开源视频转码工具，支持几乎所有格式。
+
+### 4.4 视频下载
+
+```bash
+# GUI 方式
+brew install --cask downie
+
+# CLI 方式
+brew install yt-dlp ffmpeg
+```
+
+**yt-dlp 常用命令**：
+
+```bash
+# 下载 YouTube 视频
+yt-dlp "https://www.youtube.com/watch?v=VIDEO_ID"
+
+# 下载 B站视频
+yt-dlp "https://www.bilibili.com/video/BV1xxx"
+
+# 下载 4K 画质
+yt-dlp -f "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]" "URL"
+
+# 下载并转换音频
+yt-dlp -x --audio-format mp3 "URL"
+
+# 下载字幕
+yt-dlp --write-subs --sub-lang zh "URL"
+```
+
+### 4.5 图片查看
+
+```bash
+brew install --cask pixea
+```
+
+免费图片查看器，支持 EXIF 信息显示。
+
+### 4.6 PDF 阅读
+
+```bash
+brew install --cask skim
+```
+
+免费 PDF 阅读器，专注阅读体验，支持批注。
+
+---
+
+## 第五阶段：设计工具
+
+```bash
+brew install --cask figma
+```
+
+---
+
+## 第六阶段：开发环境
+
+### 6.1 Git 配置
+
+```bash
+brew install git delta
+
+# 配置
+git config --global user.name "Your Name"
+git config --global user.email "you@example.com"
+
+# Git diff 增强
+git config --global core.pager delta
+git config --global interactive.diffFilter "delta --color-only"
+git config --global delta.navigate true
+```
+
+### 6.2 终端环境
+
+```bash
+# 安装
+brew install zsh-syntax-highlighting zsh-autosuggestions zoxide starship atuin
+
+# 安装终端模拟器
+brew install --cask ghostty
+```
+
+**~/.zshrc 配置**：
+
+```bash
+# 命令补全
+autoload -Uz compinit && compinit
+
+# 语法高亮和历史建议
+source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+
+# 历史配置
+setopt HIST_FIND_NO_DUPS
+setopt HIST_IGNORE_DUPS
+setopt SHARE_HISTORY
+HISTSIZE=10000
+SAVEHIST=10000
+
+# 提示符
+eval "$(starship init zsh)"
+
+# 目录跳转
+eval "$(zoxide init zsh)"
+
+# 命令历史
+eval "$(atuin init zsh)"
+```
+
+### 6.3 核心 CLI 工具
+
+| 工具        | 用途                         |
+| ----------- | ---------------------------- |
+| **bat**     | cat 替代，带语法高亮和行号   |
+| **eza**     | ls 替代，支持 Git 状态和图标 |
+| **fd**      | find 替代，速度快 10-100 倍  |
+| **ripgrep** | grep 替代，极速搜索          |
+| **fzf**     | 模糊搜索，快速定位文件       |
+| **jq**      | JSON 处理和格式化            |
+| **jc**      | 将命令输出转为 JSON          |
+| **btop**    | top 替代，美观的进程监控     |
+| **duf**     | du/df 替代，直观显示磁盘使用 |
+| **ncdu**    | 交互式磁盘清理               |
+| **httpie**  | HTTP 客户端，比 curl 更简单  |
+| **dog**     | DNS 查询，比 dig 更直观      |
+
+```bash
+brew install bat eza fd ripgrep fzf zoxide jq jc btop duf ncdu httpie dog
+```
+
+### 6.4 版本管理工具
+
+```bash
+brew install fnm asdf
+```
+
+| 工具     | 用途                              |
+| -------- | --------------------------------- |
+| **fnm**  | Node.js 版本管理，比 nvm 快       |
+| **asdf** | 多语言版本管理（Python、Ruby 等） |
+
+### 6.5 Git 工具
+
+```bash
+brew install lazygit gh
+```
+
+| 工具        | 用途                          |
+| ----------- | ----------------------------- |
+| **lazygit** | Git TUI，交互式操作           |
+| **gh**      | GitHub CLI，管理 PR 和 Issues |
+
+### 6.6 Docker
+
+```bash
+brew install --cask docker
+brew install lazydocker
+```
+
+### 6.7 数据库 CLI
+
+```bash
+brew install pgcli litecli mycli
+```
+
+| 工具        | 用途                           |
+| ----------- | ------------------------------ |
+| **pgcli**   | PostgreSQL CLI，自动补全和高亮 |
+| **litecli** | SQLite CLI                     |
+| **mycli**   | MySQL CLI                      |
+
+### 6.8 编辑器
+
+```bash
+brew install helix
+```
+
+现代编辑器，模态编辑（Vim 风格），开箱即用。
+
+### 6.9 开发辅助工具
+
+```bash
+# 通知工具（任务完成后自动提醒）
+brew install noti terminal-notifier
+
+# 系统信息
+brew install fastfetch
+
+# 进度显示
+brew install pv progress
+
+# 任务管理
+brew install task timewarrior
+
+# 配置管理
+brew install chezmoi
+```
+
+---
+
+## 第七阶段：浏览器与插件
+
+### 7.1 Chrome 插件
+
+在 Chrome 网上应用店搜索以下插件名安装：
+
+| 插件                      | 说明                      |
+| ------------------------- | ------------------------- |
+| **Obsidian Web Clipper**  | 将网页内容保存到 Obsidian |
+| **React Developer Tools** | React 组件树查看器        |
+| **Save All Resources**    | 一键下载页面所有资源      |
+| **Copy as Markdown**      | 转为 Markdown 格式        |
+| **Star History**          | 显示 Star 增长曲线图      |
+| **Playwright MCP**        | AI 控制浏览器             |
+| **Subtle White**          | 护眼主题                  |
+| **Video Screenshot**      | 视频帧截图工具            |
+
+### 7.2 VSCode 插件
+
+```bash
+# AI 工具
+code --install-extension anthropic.claude-code
+code --install-extension github.copilot
+code --install-extension github.copilot-chat
+code --install-extension rooveterinaryinc.roo-cline
+code --install-extension openai.chatgpt
+
+# 编程语言
+code --install-extension ms-python.python
+code --install-extension ms-python.vscode-pylance
+code --install-extension vue.volar
+code --install-extension dbaeumer.vscode-eslint
+code --install-extension esbenp.prettier-vscode
+code --install-extension bradlc.vscode-tailwindcss
+
+# 开发效率
+code --install-extension eamodio.gitlens
+code --install-extension christian-kohler.npm-intellisense
+code --install-extension christian-kohler.path-intellisense
+code --install-extension mechatroner.rainbow-csv
+code --install-extension gruntfuggly.todo-tree
+code --install-extension usernamehw.errorlens
+
+# 主题图标
+code --install-extension dracula-theme.theme-dracula
+code --install-extension tonsky.theme-alabaster
+code --install-extension pkief.material-icon-theme
+code --install-extension oderwat.indent-rainbow
+```
+
+---
+
+## 第八阶段：娱乐工具
+
+```bash
+brew install --cask spotify overcast
+```
+
+---
+
+## tl;dr
+
+**最后有速查和一键安装脚本，直接往下拉！**
+
+---
+
+## 安装清单速查
+
+```bash
+# ===== Homebrew 安装（先执行） =====
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# ===== 系统工具 =====
+brew install --cask the-unarchiver
+brew install tw93/tap/mole
+
+# ===== 效率工具 =====
+brew install --cask raycast shottr
+
+# ===== 媒体工具 =====
+brew install --cask iina obs handbrake downie
+
+# ===== 图片与 PDF =====
+brew install --cask pixea skim
+
+# ===== 设计工具 =====
+brew install --cask figma
+
+# ===== 娱乐工具 =====
+brew install --cask spotify overcast
+
+# ===== 通讯工具 =====
+brew install --cask wechat qq dingtalk telegram discord whatsapp zoom tencent-meeting
+
+# ===== CLI 工具 =====
+brew install git delta
+brew install bat eza fd ripgrep fzf zoxide jq jc
+brew install btop duf ncdu httpie dog atuin
+brew install zsh-syntax-highlighting zsh-autosuggestions starship
+brew install fnm asdf lazygit gh
+brew install pgcli litecli mycli helix
+brew install noti terminal-notifier fastfetch pv progress
+brew install task timewarrior chezmoi
+
+# ===== 开发工具 =====
+brew install --cask ghostty docker
+```
+
+---
+
+## 一键安装脚本
+
+```bash
+#!/bin/bash
+set -e
+
+echo "🚀 开始一键安装开发环境..."
+
+# Homebrew
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# 基础 CLI 工具
+echo "📦 安装 CLI 工具..."
+brew install git delta
+brew install bat eza fd ripgrep fzf zoxide jq jc
+brew install btop duf ncdu httpie dog atuin
+brew install zsh-syntax-highlighting zsh-autosuggestions starship
+brew install fnm asdf lazygit gh
+brew install pgcli litecli mycli helix
+brew install noti terminal-notifier fastfetch pv progress
+brew install task timewarrior chezmoi
+
+# GUI 应用
+echo "📦 安装 GUI 应用..."
+brew install --cask ghostty docker the-unarchiver raycast shottr
+brew install --cask iina obs handbrake downie
+brew install --cask pixea skim figma spotify overcast
+brew install --cask wechat qq dingtalk telegram discord whatsapp zoom tenmonkey
+
+# 配置 ~/.zshrc
+echo "⚙️ 配置 ~/.zshrc..."
+cat >> ~/.zshrc << 'EOF'
+
+# 命令补全
+autoload -Uz compinit && compinit
+
+# 语法高亮和历史建议
+source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+
+# 历史配置
+setopt HIST_FIND_NO_DUPS
+setopt HIST_IGNORE_DUPS
+setopt SHARE_HISTORY
+HISTSIZE=10000
+SAVEHIST=10000
+
+# 提示符
+eval "$(starship init zsh)"
+
+# 目录跳转
+eval "$(zoxide init zsh)"
+
+# 命令历史
+eval "$(atuin init zsh)"
+
+# fzf 模糊搜索
+eval "$(fzf --zsh)"
+
+# fnm Node.js 版本管理
+eval "$(fnm env --use-on-cd)"
+
+# 命令别名（现代 CLI 工具替代）
+alias cat='bat'
+alias ls='eza --git --icons'
+alias ll='eza -lah --git --icons'
+alias tree='eza --tree'
+alias find='fd'
+alias grep='rg'
+alias du='duf'
+alias df='duf'
+alias top='btop'
+alias git='lazygit'
+alias docker='lazydocker'
+EOF
+
+echo "✅ 安装完成！请重启终端或执行: source ~/.zshrc"
+```
+
+---
+
+## 工具速查
+
+### 命令行工具替代
+
+| 场景        | 原命令   | 现代替代   |
+| ----------- | -------- | ---------- |
+| 查看文件    | cat      | bat        |
+| 列表目录    | ls       | eza        |
+| 树形目录    | tree     | eza --tree |
+| 查找文件    | find     | fd         |
+| 搜索内容    | grep     | ripgrep    |
+| 目录跳转    | cd       | zoxide     |
+| 进程监控    | top      | btop       |
+| 磁盘使用    | du/df    | duf        |
+| 磁盘清理    | -        | ncdu       |
+| Git 操作    | git      | lazygit    |
+| Git diff    | git diff | delta      |
+| Docker 操作 | docker   | lazydocker |
+| 命令历史    | Ctrl+R   | atuin      |
+| JSON 处理   | -        | jq + jc    |
+| HTTP 请求   | curl     | httpie     |
+| DNS 查询    | dig      | dog        |
+
+### 常用命令速查
+
+| 功能          | 命令             |
+| ------------- | ---------------- |
+| 显示 Git 状态 | `eza -lah --git` |
+| 查找文件      | `fd "name"`      |
+| 搜索代码      | `rg "pattern"`   |
+| 查看磁盘      | `duf`            |
+| 查看进程      | `btop`           |
+| 智能跳转      | `z foo`          |
+| 搜索历史      | `atuin search`   |
+
+### 快捷键速查
+
+| 功能           | 快捷键             |
+| -------------- | ------------------ |
+| Raycast 启动   | `Cmd+Space`        |
+| 模糊搜索文件   | `Ctrl+T` (Raycast) |
+| 搜索命令历史   | `Ctrl+R`           |
+| 跳转到常用目录 | `z + 名称`         |
+
+---
+
+## 注意事项
+
+### 版权和合规
+
+- 仅下载有权下载的内容
+- 遵守平台使用条款
+- 仅用于个人学习研究
+
+### 下载质量
+
+- B站支持 4K、杜比音效
+- YouTube 支持 8K、VR
+- 抖音视频有水印

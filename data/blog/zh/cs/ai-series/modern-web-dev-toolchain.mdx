@@ -4,6 +4,8 @@ date: '2025-10-12 17:00:00'
 tags: ['web-development', 'tools', 'mvp', 'ai', 'cloud-native', 'paas', 'baas', 'learn-about']
 draft: false
 summary: '全面解析2025年个人开发者构建Web MVP的现代工具链，涵盖从需求分析、设计到开发部署的全流程，探索AI驱动、云原生和无服务器架构下的最佳实践。'
+series: '现代化本地开发环境搭建'
+step: 1
 ---
 
 # AI时代的现代Web开发工具链
@@ -471,27 +473,193 @@ jobs:
 
 ### 8.1 包管理器
 
-**pnpm**（推荐）
+**Bun**（强烈推荐）
+
+Bun 是 2024-2025 年最令人瞩目的 JavaScript 运行时和包管理器，专为现代 Web 开发设计。
+
+**核心优势**：
+
+- **极快速度**：比 npm/yarn 快 10-30 倍的安装速度
+- **一体化工具**：包管理器 + 运行时 + 测试运行器 + 打包器
+- **兼容性**：Drop-in 替代 npm，完全兼容 Node.js 生态
+- **内置功能**：
+  - 原生 TypeScript 支持
+  - 内置测试运行器（`bun test`）
+  - 内置打包器（`bun build`）
+  - 内置开发服务器（`bun dev`）
+  - 自动环境变量加载（无需 dotenv）
+
+**使用示例**：
+
+```bash
+# 初始化项目
+bun init
+
+# 安装依赖（比 npm 快 10 倍+）
+bun install
+
+# 运行脚本
+bun run dev
+
+# 运行测试
+bun test
+
+# 构建项目
+bun build ./src/index.ts --outdir ./dist
+```
+
+**Package.json 兼容**：
+
+```json
+{
+  "scripts": {
+    "dev": "next dev", // Bun 可直接运行
+    "build": "next build",
+    "test": "bun test" // 使用内置测试运行器
+  }
+}
+```
+
+**适用场景**：
+
+- 新项目首选，特别是 Next.js 15 项目
+- 需要快速 CI/CD 的项目
+- 追求极致开发体验的团队
+
+**注意事项**：
+
+- 某些原生模块可能需要 Node.js 兼容性检查
+- Next.js 15+ 官方支持 Bun 作为运行时
+
+**pnpm**（稳定选择）
 
 - **优势**：快速、节省磁盘空间、严格的依赖管理
-- **命令**：与npm兼容
+- **特点**：使用硬链接避免重复文件
+- **命令**：与 npm 100% 兼容
+- **生态**：成熟稳定，被 Vercel、Node.js 官方采用
 
-**Bun**（新选择）
+**选择建议**：
 
-- **特点**：极快的安装速度、内置测试运行器
-- **生态**：快速成熟中
+- 新项目：优先使用 Bun
+- 现有项目：npm/pnpm → Bun 迁移成本很低
+- 企业级项目：pnpm（更成熟的依赖管理）
 
 ### 8.2 构建工具
 
-**Vite**
+**Vite 6.x**（现代化构建标准）
 
-- **优势**：极快的HMR、现代化的构建
-- **适用**：非Next.js项目
+Vite 已成为 2025 年前端开发的默认构建工具，被 React、Vue、Svelte 等主流框架广泛采用。
 
-**Turbopack**
+**核心优势**：
 
-- **特点**：Next.js 15的默认打包器
-- **性能**：比Webpack快10倍
+- **极速 HMR**：基于 ESM 的热更新，毫秒级响应
+- **开箱即用**：零配置支持 TypeScript、JSX、CSS 预处理器
+- **优化的构建**：使用 Rollup 进行生产构建，支持代码分割
+- **生态丰富**：50+ 官方插件，覆盖所有主流框架
+
+**框架模板**：
+
+```bash
+# React + TypeScript
+bun create vite my-app --template react-ts
+
+# Vue 3 + TypeScript
+bun create vite my-app --template vue-ts
+
+# Svelte + TypeScript
+bun create vite my-app --template svelte-ts
+
+# Solid + TypeScript
+bun create vite my-app --template solid-ts
+```
+
+**核心配置示例**：
+
+```typescript
+// vite.config.ts
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import path from 'path'
+
+export default defineConfig({
+  plugins: [react()],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
+  server: {
+    port: 3000,
+    open: true,
+  },
+  build: {
+    outDir: 'dist',
+    sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          ui: ['@radix-ui/react-dialog'],
+        },
+      },
+    },
+  },
+})
+```
+
+**Vite 6 新特性**：
+
+- **环境变量改进**：更智能的 `.env` 文件加载
+- **构建性能提升**：大型项目构建速度提升 30-50%
+- **改进的 CSS 处理**：更好的 CSS Modules 和 CSS 预处理器支持
+- **富资源优化**：自动优化图片、字体等静态资源
+
+**常用插件**：
+
+```typescript
+// CSS 预处理器
+import tailwindcss from 'tailwindcss'
+
+// 自动导入组件
+import AutoImport from 'unplugin-auto-import/vite'
+import Components from 'unplugin-vue-components/vite'
+
+// PWA 支持
+import { VitePWA } from 'vite-plugin-pwa'
+
+// Visualizer 可视化打包分析
+import { visualizer } from 'rollup-plugin-visualizer'
+```
+
+**适用场景**：
+
+- React SPA（非 Next.js）
+- Vue 3 应用
+- Electron 应用
+- 组件库开发
+- VitePress 文档站点
+
+**Turbopack**（Next.js 专用）
+
+- **特点**：Next.js 15 的默认打包器（Webpack 替代品）
+- **性能**：比 Webpack 快 10 倍，大型项目更新速度提升 700%
+- **开发者体验**：增量构建，只重新编译改变的模块
+- **未来**：Rust 编写，将成为 Next.js 的核心优势
+
+**重要说明**：
+
+- **Turbopack 不可用于 Contentlayer2**：Next.js 16+ 使用 Turbopack，但 Contentlayer2 依赖 Webpack
+- **当前项目**：使用 Next.js 15 + Webpack 以支持 Contentlayer2
+
+**选择建议**：
+
+| 项目类型      | 构建工具                          |
+| ------------- | --------------------------------- |
+| Next.js 项目  | Next.js 内置（Turbopack/Webpack） |
+| React/Vue SPA | Vite 6                            |
+| 组件库        | Vite 6 + tsup                     |
+| 纯静态站点    | Astro（内部使用 Vite）            |
+| Monorepo      | Turborepo + Vite/Next.js          |
 
 ### 8.3 Monorepo工具
 
