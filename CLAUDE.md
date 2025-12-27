@@ -19,19 +19,21 @@ bun run lint         # Lint and auto-fix code
 
 ### Blog Post Fields
 
-| Field          | Type    | Required | Description                        |
-| -------------- | ------- | -------- | ---------------------------------- |
-| `title`        | string  | ✅       | Post title                         |
-| `date`         | date    | ✅       | Publication date                   |
-| `tags`         | list    | -        | Array of tags                      |
-| `lastmod`      | date    | -        | Last modified date                 |
-| `draft`        | boolean | -        | Draft status, hidden in production |
-| `summary`      | string  | -        | Post summary                       |
-| `images`       | json    | -        | Cover image array                  |
-| `authors`      | list    | -        | Author list                        |
-| `layout`       | string  | -        | Layout type                        |
-| `bibliography` | string  | -        | Bibliography file path             |
-| `canonicalUrl` | string  | -        | Canonical URL for SEO              |
+| Field          | Type    | Required | Description                          |
+| -------------- | ------- | -------- | ------------------------------------ |
+| `title`        | string  | ✅       | Post title                           |
+| `date`         | date    | ✅       | Publication date                     |
+| `tags`         | list    | -        | Array of tags                        |
+| `lastmod`      | date    | -        | Last modified date                   |
+| `draft`        | boolean | -        | Draft status, hidden in production   |
+| `summary`      | string  | -        | Post summary                         |
+| `images`       | json    | -        | Cover image array                    |
+| `authors`      | list    | -        | Author list                          |
+| `layout`       | string  | -        | Layout type                          |
+| `bibliography` | string  | -        | Bibliography file path               |
+| `canonicalUrl` | string  | -        | Canonical URL for SEO                |
+| `series`       | string  | -        | Series name for roadmap              |
+| `step`         | number  | -        | Step number in series (for ordering) |
 
 ### Example
 
@@ -64,9 +66,25 @@ draft: true
 - **Development** (`bun dev`): Drafts are visible
 - **Production** (`bun run build`): Drafts are automatically excluded
 
-## Series Posts (Nested Routing)
+## Series Posts with Roadmap
 
-Organize series posts using nested folders:
+### Series Frontmatter
+
+Use `series` and `step` fields to organize series posts with an immersive roadmap:
+
+```yaml
+---
+title: Part 1 - Introduction
+date: 2025-12-25
+series: My Series Name
+step: 1
+summary: First part of the series
+---
+```
+
+### Nested Routing Alternative
+
+You can also organize series posts using nested folders:
 
 ```
 data/blog/
@@ -77,6 +95,19 @@ data/blog/
 ```
 
 Posts in the same folder are sorted by date automatically.
+
+### Series Roadmap Component
+
+When a post has the `series` frontmatter, a "View Series Roadmap" button appears. Clicking opens an immersive full-screen roadmap featuring:
+
+- **Animated beam path** with gradient (blue → violet → pink)
+- **Staggered node layout** alternating above/below center
+- **Progress indicators** (✓ for completed, pulse for current)
+- **Info cards** on hover with post details
+- **Framer Motion animations** with smooth transitions
+- **Body scroll lock** to prevent background scrolling
+
+The roadmap is built with `SeriesRoadmap` component at `components/SeriesRoadmap.tsx`.
 
 ## Architecture
 
@@ -96,12 +127,13 @@ Content managed through Contentlayer2 with schemas in `contentlayer.config.ts`. 
 
 ### Next.js App Router Structure
 
-All pages in `app/` directory:
+All pages in `app/[locale]/` directory for i18n support:
 
-- Dynamic routes: `app/blog/[...slug]/page.tsx` (catch-all for nested routes)
-- Tag pages: `app/tags/[tag]/page/[page]/page.tsx`
+- Dynamic routes: `app/[locale]/blog/[...slug]/page.tsx` (catch-all for nested routes)
+- Tag pages: `app/[locale]/tags/[tag]/page/[page]/page.tsx`
 - Static generation via `generateStaticParams()`
 - Draft posts excluded in production when `draft: true`
+- Locale prefixes: `/zh/...`, `/en/...`
 
 ### Layout System
 
@@ -126,7 +158,16 @@ All site configuration in `data/siteMetadata.js`:
 
 ```
 ├── app/                    # Next.js App Router pages
+│   └── [locale]/          # Locale-based routing (en/zh)
 ├── components/            # React components
+│   ├── SeriesRoadmap.tsx # Series roadmap with Framer Motion
+│   ├── LanguageSwitch.tsx # i18n language toggle
+│   ├── HeroTypewriter.tsx # Typewriter effect
+│   ├── Mermaid.tsx       # Mermaid chart renderer
+│   ├── MermaidLoader.tsx # Dynamic Mermaid loader
+│   └── MobileNav.tsx     # Mobile nav with scroll lock
+├── src/
+│   └── navigation.ts     # next-intl routing config
 ├── contentlayer.config.ts # Contentlayer configuration
 ├── css/tailwind.css       # Tailwind CSS v4 config
 ├── data/
@@ -139,17 +180,101 @@ All site configuration in `data/siteMetadata.js`:
 
 ## Important Notes
 
-### i18n Content Structure
-
-Blog posts organized by locale:
-
-- English: `data/blog/en/**/*.mdx`
-- Chinese: `data/blog/zh/**/*.mdx`
-
-Locale extracted from path (second segment) as computed field.
-
 ### Turbopack Compatibility
 
 **Next.js 16+ is NOT compatible with Contentlayer2.** Next.js 16 uses Turbopack by default, which does not support `next-contentlayer2`.
 
 The project uses Next.js 15.x to maintain webpack support for Contentlayer2.
+
+### Search Path Configuration
+
+Kbar search index is generated at `public/search.json`. The path is configured in `data/siteMetadata.js`:
+
+```js
+search: {
+  provider: 'kbar',
+  kbarConfig: {
+    searchDocumentsPath: 'search.json', // Relative to public/
+  },
+}
+```
+
+## New Features
+
+### next-intl i18n
+
+Full internationalization support using `next-intl`:
+
+**Configuration** (`src/navigation.ts`):
+
+- Supported locales: `en`, `zh`
+- Default locale: `zh`
+- Locale prefix: `always` (e.g., `/zh/blog`, `/en/blog`)
+
+**Language Switch Component** (`components/LanguageSwitch.tsx`):
+
+- Toggle between Chinese (中) and English (En)
+- Animated sliding pill indicator
+- Integrated into Header
+
+**Content Structure**:
+
+- Posts organized by locale: `data/blog/en/**/*.mdx`, `data/blog/zh/**/*.mdx`
+- Locale extracted as computed field in Contentlayer
+- Routing handled via `app/[locale]/` directory structure
+
+### Mermaid Charts
+
+Mermaid diagram support for flowcharts, sequence diagrams, and more.
+
+**Components**:
+
+- `components/Mermaid.tsx` - Main Mermaid renderer with dark theme support
+- `components/MermaidLoader.tsx` - Dynamic loader for layouts
+
+**Usage in MDX**:
+
+````markdown
+```mermaid
+graph TB
+    A[Start] --> B[End]
+```
+````
+
+````
+
+**Layout Support**:
+- `PostLayout` and `PostSimple`: Built-in Mermaid support
+- `PostBanner`: Requires `MermaidLoader` component
+
+**Styling**: Charts centered with `flex justify-center` class.
+
+### Hero Typewriter Effect
+
+Animated typewriter effect for homepage descriptions.
+
+**Component** (`components/HeroTypewriter.tsx`):
+- Cycles through multiple description strings
+- Smooth typing/deleting animation
+- Blinking cursor effect
+- Custom typing speeds (100ms typing, 50ms deleting, 2000ms pause)
+
+**Configuration** (`data/siteMetadata.js`):
+```js
+descriptions: [
+  '写作即思考 - A blog about technology and thinking',
+  '编程即创造 - Coding is creating',
+  '分享即学习 - Sharing is learning',
+]
+````
+
+### Mobile Navigation
+
+Enhanced mobile nav with body scroll lock:
+
+**Component** (`components/MobileNav.tsx`):
+
+- Uses `body-scroll-lock` for preventing background scroll
+- Smooth transitions with Headless UI
+- Internationalized nav links via `next-intl`
+- Z-index layering (modal: z-60, panel: z-70, close button: z-80)
