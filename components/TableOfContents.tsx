@@ -20,7 +20,7 @@ interface TableOfContentsProps {
   className?: string
 }
 
-const VISIBLE_RANGE = 3 // 显示active项前后各3个
+const VISIBLE_RANGE = 4 // 显示active项前后各3个
 
 export default function TableOfContents({ toc, triggerId, className }: TableOfContentsProps) {
   const [activeId, setActiveId] = useState<string>('')
