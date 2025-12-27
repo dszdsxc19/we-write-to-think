@@ -81,7 +81,7 @@ const siteMetadata = {
     // content security policy in the `next.config.js` file.
     // Select a provider and use the environment variables associated to it
     // https://vercel.com/docs/environment-variables
-    provider: '', // supported providers: giscus, utterances, disqus, set to empty to disable
+    provider: 'giscus', // supported providers: giscus, utterances, disqus, set to empty to disable
 
     // Giscus 配置 (基于 GitHub Discussions)
     // 1. 访问 https://giscus.app/ 配置并获取参数
@@ -110,8 +110,10 @@ const siteMetadata = {
       // please provide a link below to your custom theme css file.
       // example: https://giscus.app/themes/custom_example.css
       themeURL: '',
-      // This corresponds to the `data-lang="en"` in giscus's configurations
-      lang: 'en',
+      // 语言代码，如 'en', 'zh-CN'
+      lang: 'zh-CN',
+      // Comments are loaded lazily by default (hardcoded in pliny), no need to set this
+      // loading: 'lazy',
     },
 
     // Utterances (基于 GitHub Issues)
