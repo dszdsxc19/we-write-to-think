@@ -4,7 +4,11 @@
       "WebFetch(domain:fonts.googleapis.com)",
       "WebFetch(domain:fonts.gstatic.com)",
       "WebFetch(domain:registry.npmjs.org)",
-      "WebFetch(domain:svg2png-api.vercel.app)"
+      "WebFetch(domain:svg2png-api.vercel.app)",
+      "WebFetch(domain:api.vercel.com)",
+      "WebFetch(domain:sentry.io)",
+      "WebFetch(domain:telemetry.vercel.com)",
+      "WebFetch(domain:we-write-to-think-pq39ju8w2-dszdsxc19s-projects.vercel.app)"
     ]
   },
   "sandbox": {
