@@ -197,7 +197,7 @@ export default makeSource({
       remarkGfm,
       remarkCodeTitles,
       remarkMath,
-      remarkImgToJsx,
+      // remarkImgToJsx, // Disabled - causes Image component error
       remarkAlert,
     ],
     rehypePlugins: [
