@@ -5,8 +5,21 @@ import ListLayout from '@/layouts/ListLayoutWithTags'
 import { allBlogs } from 'contentlayer/generated'
 import { genPageMetadata } from 'app/seo'
 import { Metadata } from 'next'
+import { readFileSync } from 'fs'
+import { join } from 'path'
 
 const POSTS_PER_PAGE = 5
+
+// Get tag counts from tag-data.json
+function getTagCounts(): Record<string, number> {
+  try {
+    const tagDataPath = join(process.cwd(), 'public', 'tag-data.json')
+    const tagDataContent = readFileSync(tagDataPath, 'utf-8')
+    return JSON.parse(tagDataContent) as Record<string, number>
+  } catch (e) {
+    return {}
+  }
+}
 
 export async function generateMetadata(props: {
   params: Promise<{ locale: string; tag: string }>
@@ -63,6 +76,7 @@ export default async function TagPage(props: { params: Promise<{ locale: string;
     currentPage: 1,
     totalPages: totalPages,
   }
+  const tagCounts = getTagCounts()
 
   return (
     <ListLayout
@@ -70,6 +84,7 @@ export default async function TagPage(props: { params: Promise<{ locale: string;
       initialDisplayPosts={initialDisplayPosts}
       pagination={pagination}
       title={title}
+      tagCounts={tagCounts}
     />
   )
 }

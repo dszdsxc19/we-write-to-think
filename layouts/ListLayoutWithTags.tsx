@@ -11,7 +11,6 @@ import Tag from '@/components/Tag'
 import DeprecatedBadge from '@/components/DeprecatedBadge'
 import siteMetadata from '@/data/siteMetadata'
 import { useTranslations } from 'next-intl'
-import tagData from '../public/tag-data.json'
 
 interface PaginationProps {
   totalPages: number
@@ -22,6 +21,7 @@ interface ListLayoutProps {
   title: string
   initialDisplayPosts?: CoreContent<Blog>[]
   pagination?: PaginationProps
+  tagCounts?: Record<string, number>
 }
 
 function Pagination({ totalPages, currentPage }: PaginationProps) {
@@ -76,10 +76,10 @@ export default function ListLayoutWithTags({
   title,
   initialDisplayPosts = [],
   pagination,
+  tagCounts = {},
 }: ListLayoutProps) {
   const pathname = usePathname()
   const t = useTranslations('listLayout')
-  const tagCounts = tagData as Record<string, number>
   const sortedTags = useMemo(() => {
     const tagKeys = Object.keys(tagCounts)
     return tagKeys.sort((a, b) => tagCounts[b] - tagCounts[a])
