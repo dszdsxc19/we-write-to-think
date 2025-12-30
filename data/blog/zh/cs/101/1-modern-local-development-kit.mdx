@@ -584,7 +584,32 @@ brew install pgcli litecli mycli
 | **litecli** | SQLite CLI                     |
 | **mycli**   | MySQL CLI                      |
 
-### 6.9 编辑器
+### 6.9 数据库 GUI 工具
+
+```bash
+# 关系型数据库 GUI
+brew install --cask datagrip
+
+# NoSQL 数据库 GUI
+brew install --cask mongodb-compass
+
+# Redis GUI
+brew install --cask tinyrdm
+```
+
+| 工具                | 用途                                 |
+| ------------------- | ------------------------------------ |
+| **DataGrip**        | 关系型数据库 GUI，支持个人免费使用   |
+| **MongoDB Compass** | MongoDB 官方 GUI                     |
+| **tinyRDM**         | Redis 现代化 GUI，性能优异，界面美观 |
+
+**推荐理由**：
+
+- **DataGrip**：JetBrains 出品，现已支持个人免费使用，功能强大，智能 SQL 补全，支持 PostgreSQL、MySQL、SQLite 等主流关系型数据库
+- **MongoDB Compass**：MongoDB 官方 GUI，免费开源，可视化文档查询、聚合管道、索引管理
+- **tinyRDM**：现代化 Redis GUI，性能优异，界面美观，支持键值浏览、SSH 隧道、批量操作
+
+### 6.10 编辑器
 
 ```bash
 brew install helix
@@ -592,7 +617,7 @@ brew install helix
 
 现代编辑器，模态编辑（Vim 风格），开箱即用。
 
-### 6.10 开发辅助工具
+### 6.11 开发辅助工具
 
 ```bash
 # 通知工具（任务完成后自动提醒）
@@ -719,6 +744,7 @@ brew install task timewarrior chezmoi
 
 # ===== 开发工具 =====
 brew install --cask ghostty orbstack
+brew install --cask datagrip mongodb-compass tinyrdm
 brew install ollama
 ```
 
@@ -749,6 +775,7 @@ brew install task timewarrior chezmoi
 # GUI 应用
 echo "📦 安装 GUI 应用..."
 brew install --cask ghostty orbstack the-unarchiver raycast shottr
+brew install --cask datagrip mongodb-compass tinyrdm
 brew install --cask iina obs handbrake downie
 brew install --cask pixea skim figma spotify overcast
 brew install --cask wechat qq dingtalk telegram discord whatsapp zoom tenmonkey
