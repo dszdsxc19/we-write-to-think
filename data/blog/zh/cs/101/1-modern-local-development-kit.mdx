@@ -410,14 +410,169 @@ brew install lazygit gh
 | **lazygit** | Git TUI，交互式操作           |
 | **gh**      | GitHub CLI，管理 PR 和 Issues |
 
-### 6.6 Docker
+### 6.6 容器环境选择
+
+macOS 上运行容器有多种方案，根据需求选择最适合的：
+
+#### 方案对比
+
+| 工具         | 适用场景                                                                                                           | 优势                           | 劣势                     |
+| ------------ | ------------------------------------------------------------------------------------------------------------------ | ------------------------------ | ------------------------ |
+| **Podman**   | Linux 用户，反感 Docker 的 daemon 架构，追求 rootless 容器安全，或需要跨平台兼容 Docker CLI                        | 无守护进程，rootless，OCI 兼容 | macOS 上需要 Colima 支持 |
+| **Colima**   | macOS 用户，只需要「能用就行」的 Docker 环境，不想折腾，对性能/功能要求不高，且设备配置较低                        | 轻量级，简单配置，免费开源     | 性能一般，功能有限       |
+| **OrbStack** | macOS 开发者，需要替代 Docker Desktop 且追求高性能（启动快、资源省），同时用容器+K8s+轻量虚拟机，高频操作文件/网络 | 启动极快，资源占用低，功能丰富 | 仅支持 macOS             |
+
+#### 推荐方案：OrbStack
+
+对于 macOS 开发者，**OrbStack** 是最佳选择：
+
+**核心优势**：
+
+- **启动速度**：冷启动 < 2 秒，Docker Desktop 需要 10+ 秒
+- **资源占用**：内存占用仅为 Docker Desktop 的 1/3，闲置时接近 0
+- **网络性能**：文件共享速度提升 5-10 倍，适合高频 I/O 操作
+- **功能完整**：同时支持容器、Docker Compose、Kubernetes、Linux 虚拟机
+- **CLI 集成**：无缝兼容 Docker 命令，无需学习新工具
+- **成本优势**：个人免费，相比 Docker Desktop 节省 $120/年订阅费
+
+**安装与配置**：
 
 ```bash
-brew install --cask docker
+# 安装 OrbStack
+brew install --cask orbstack
+
+# 启动 OrbStack（首次启动会自动配置 Docker 环境）
+open -a OrbStack
+```
+
+**验证安装**：
+
+```bash
+# 检查 Docker 是否正常工作
+docker --version
+docker run hello-world
+
+# 检查 Docker Compose
+docker compose version
+```
+
+#### 替代方案：Colima
+
+如果你的设备配置较低（如 8GB 内存），或者需要最简化的方案：
+
+```bash
+# 安装 Colima 和 Docker CLI
+brew install colima docker docker-compose
+
+# 启动 Colima（默认配置 2CPU + 4GB RAM）
+colima start
+
+# 自定义配置（4CPU + 8GB RAM）
+colima start --cpu 4 --memory 8
+
+# 查看状态
+colima status
+
+# 停止
+colima stop
+```
+
+#### 容器管理工具
+
+无论选择哪种方案，都推荐安装 **lazydocker** 进行可视化操作：
+
+```bash
 brew install lazydocker
 ```
 
-### 6.7 数据库 CLI
+**lazydocker 快捷键**：
+
+- `e`：查看日志
+- `s`：查看状态
+- `c`：进入容器 shell
+- `+`：创建新容器
+- `[-]`：移除容器
+- `Ctrl+e`：编辑配置
+- `q`：退出
+
+> **注意**：如果之前安装了 Docker Desktop，请先完全卸载以避免端口冲突：
+>
+> ```bash
+> # 卸载 Docker Desktop
+> brew uninstall --cask docker
+> # 或者在 App 中手动移除
+> rm -rf ~/Library/Group\ Containers/group.com.docker
+> ```
+
+### 6.7 AI 开发环境
+
+#### Ollama：本地 LLM 运行环境
+
+在本地运行大语言模型，无需 API 调用，保护数据隐私。
+
+**安装与配置**：
+
+```bash
+# 安装 Ollama
+brew install ollama
+
+# 启动 Ollama 服务
+ollama serve
+
+# 拉取模型（示例：Llama 3.2 3B）
+ollama pull llama3.2:3b
+
+# 运行模型（交互式对话）
+ollama run llama3.2:3b
+
+# 测试模型
+echo "你好，请介绍一下自己" | ollama run llama3.2:3b
+```
+
+**推荐模型**（按设备配置选择）：
+
+| 设备配置  | 模型         | 参数量 | 内存需求 | 用途           |
+| --------- | ------------ | ------ | -------- | -------------- |
+| 8GB RAM   | llama3.2:3b  | 3B     | ~4GB     | 轻量对话       |
+| 16GB RAM  | llama3.2:3b  | 3B     | ~4GB     | 日常开发辅助   |
+| 16GB RAM  | qwen2.5:7b   | 7B     | ~8GB     | 代码生成、推理 |
+| 32GB+ RAM | llama3.1:70b | 70B    | ~40GB    | 复杂推理任务   |
+
+**常用命令**：
+
+```bash
+# 列出已下载模型
+ollama list
+
+# 查看运行中的模型
+ollama ps
+
+# 复制模型
+ollama cp llama3.2:3b my-model
+
+# 删除模型
+ollama rm llama3.2:3b
+
+# 通过 API 调用（默认端口 11434）
+curl http://localhost:11434/api/generate -d '{
+  "model": "llama3.2:3b",
+  "prompt": "解释 React Server Components"
+}'
+```
+
+**与开发工具集成**：
+
+- **Claude Code**：配置 `OLLAMA_API_BASE=http://localhost:11434` 使用本地模型
+- **VSCode**：安装 `CodeGPT` 插件，配置 Ollama 端点
+- **Continue**：AI 编程助手，支持 Ollama 后端
+
+> **性能优化**：
+>
+> - 首次运行模型会下载到 `~/.ollama/models/`，建议定期清理旧版本
+> - 使用量化模型（如 `:q4_0` 后缀）减少内存占用
+> - M系列芯片 Mac 性能最优，Intel Mac 建议使用 7B 以下模型
+
+### 6.8 数据库 CLI
 
 ```bash
 brew install pgcli litecli mycli
@@ -429,7 +584,7 @@ brew install pgcli litecli mycli
 | **litecli** | SQLite CLI                     |
 | **mycli**   | MySQL CLI                      |
 
-### 6.8 编辑器
+### 6.9 编辑器
 
 ```bash
 brew install helix
@@ -437,7 +592,7 @@ brew install helix
 
 现代编辑器，模态编辑（Vim 风格），开箱即用。
 
-### 6.9 开发辅助工具
+### 6.10 开发辅助工具
 
 ```bash
 # 通知工具（任务完成后自动提醒）
@@ -563,7 +718,8 @@ brew install noti terminal-notifier fastfetch pv progress
 brew install task timewarrior chezmoi
 
 # ===== 开发工具 =====
-brew install --cask ghostty docker
+brew install --cask ghostty orbstack
+brew install ollama
 ```
 
 ---
@@ -586,13 +742,13 @@ brew install bat eza fd ripgrep fzf zoxide jq jc
 brew install btop duf ncdu httpie dog atuin
 brew install zsh-syntax-highlighting zsh-autosuggestions starship
 brew install fnm asdf lazygit gh
-brew install pgcli litecli mycli helix
+brew install pgcli litecli mycli helix ollama
 brew install noti terminal-notifier fastfetch pv progress
 brew install task timewarrior chezmoi
 
 # GUI 应用
 echo "📦 安装 GUI 应用..."
-brew install --cask ghostty docker the-unarchiver raycast shottr
+brew install --cask ghostty orbstack the-unarchiver raycast shottr
 brew install --cask iina obs handbrake downie
 brew install --cask pixea skim figma spotify overcast
 brew install --cask wechat qq dingtalk telegram discord whatsapp zoom tenmonkey
@@ -653,36 +809,39 @@ echo "✅ 安装完成！请重启终端或执行: source ~/.zshrc"
 
 ### 命令行工具替代
 
-| 场景        | 原命令   | 现代替代   |
-| ----------- | -------- | ---------- |
-| 查看文件    | cat      | bat        |
-| 列表目录    | ls       | eza        |
-| 树形目录    | tree     | eza --tree |
-| 查找文件    | find     | fd         |
-| 搜索内容    | grep     | ripgrep    |
-| 目录跳转    | cd       | zoxide     |
-| 进程监控    | top      | btop       |
-| 磁盘使用    | du/df    | duf        |
-| 磁盘清理    | -        | ncdu       |
-| Git 操作    | git      | lazygit    |
-| Git diff    | git diff | delta      |
-| Docker 操作 | docker   | lazydocker |
-| 命令历史    | Ctrl+R   | atuin      |
-| JSON 处理   | -        | jq + jc    |
-| HTTP 请求   | curl     | httpie     |
-| DNS 查询    | dig      | dog        |
+| 场景      | 原命令   | 现代替代   |
+| --------- | -------- | ---------- |
+| 查看文件  | cat      | bat        |
+| 列表目录  | ls       | eza        |
+| 树形目录  | tree     | eza --tree |
+| 查找文件  | find     | fd         |
+| 搜索内容  | grep     | ripgrep    |
+| 目录跳转  | cd       | zoxide     |
+| 进程监控  | top      | btop       |
+| 磁盘使用  | du/df    | duf        |
+| 磁盘清理  | -        | ncdu       |
+| Git 操作  | git      | lazygit    |
+| Git diff  | git diff | delta      |
+| 容器操作  | docker   | lazydocker |
+| 本地 LLM  | -        | ollama     |
+| 命令历史  | Ctrl+R   | atuin      |
+| JSON 处理 | -        | jq + jc    |
+| HTTP 请求 | curl     | httpie     |
+| DNS 查询  | dig      | dog        |
 
 ### 常用命令速查
 
-| 功能          | 命令             |
-| ------------- | ---------------- |
-| 显示 Git 状态 | `eza -lah --git` |
-| 查找文件      | `fd "name"`      |
-| 搜索代码      | `rg "pattern"`   |
-| 查看磁盘      | `duf`            |
-| 查看进程      | `btop`           |
-| 智能跳转      | `z foo`          |
-| 搜索历史      | `atuin search`   |
+| 功能           | 命令                     |
+| -------------- | ------------------------ |
+| 显示 Git 状态  | `eza -lah --git`         |
+| 查找文件       | `fd "name"`              |
+| 搜索代码       | `rg "pattern"`           |
+| 查看磁盘       | `duf`                    |
+| 查看进程       | `btop`                   |
+| 智能跳转       | `z foo`                  |
+| 搜索历史       | `atuin search`           |
+| 运行本地 LLM   | `ollama run llama3.2:3b` |
+| 查看已安装模型 | `ollama list`            |
 
 ### 快捷键速查
 
