@@ -1,0 +1,195 @@
+---
+title: '本地包开发调试：pnpm / npm / bun 完整指南'
+date: '2025-12-30'
+tags: ['pnpm', 'npm', 'bun', '包管理', '本地开发', '前端工程化']
+draft: false
+summary: '详细介绍 pnpm、npm、bun 三种包管理器的本地包调试方式：link 全局软链和路径依赖，涵盖 TypeScript 支持与常见问题。'
+series: 'npm 包管理进阶'
+step: 2
+---
+
+在开发 npm 包时，我们经常需要在本地调试它。本文介绍 pnpm、npm、bun 三种主流包管理器的本地包调试方案。
+
+## 快速对比
+
+| 包管理器 | 全局 link            | 本地路径依赖          | 推荐场景     |
+| -------- | -------------------- | --------------------- | ------------ |
+| pnpm     | `pnpm link --global` | `pnpm add ../path`    | 现代项目首选 |
+| npm      | `npm link`           | `npm install ../path` | 兼容老项目   |
+| bun      | `bun link`           | `bun add ../path`     | 追求极致性能 |
+
+---
+
+## 准备工作
+
+假设你有两个项目：
+
+- **`my-lib`**：正在开发的工具包（生产者）
+- **`my-app`**：使用该工具包的项目（消费者）
+
+确保 `my-lib/package.json` 配置正确：
+
+```json
+{
+  "name": "my-utils",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts"
+}
+```
+
+---
+
+## pnpm 方案
+
+### 方式一：pnpm link（临时调试）
+
+```bash
+# 1. 在 my-lib 中注册全局链接
+cd my-lib
+pnpm link --global
+
+# 2. 在 my-app 中使用
+cd my-app
+pnpm link --global my-utils
+
+# 取消链接
+pnpm unlink --global my-utils
+```
+
+### 方式二：pnpm add（推荐，长期开发）
+
+```bash
+cd my-app
+pnpm add ../my-lib
+```
+
+效果：`package.json` 中添加 `"my-utils": "link:../my-lib"`
+
+---
+
+## npm 方案
+
+### 方式一：npm link（临时调试）
+
+```bash
+# 1. 在 my-lib 中创建全局链接
+cd my-lib
+npm link
+
+# 2. 在 my-app 中链接到全局包
+cd my-app
+npm link my-utils
+
+# 取消链接
+npm unlink my-utils
+```
+
+### 方式二：npm install（长期开发）
+
+```bash
+cd my-app
+npm install ../my-lib
+```
+
+效果：`package.json` 中添加 `"my-utils": "file:../my-lib"`
+
+---
+
+## bun 方案
+
+### 方式一：bun link（临时调试）
+
+```bash
+# 1. 在 my-lib 中注册
+cd my-lib
+bun link
+
+# 2. 在 my-app 中使用
+cd my-app
+bun link my-utils
+
+# 取消链接
+bun unlink my-utils
+```
+
+### 方式二：bun add（推荐，长期开发）
+
+```bash
+cd my-app
+bun add ../my-lib
+```
+
+效果：`package.json` 中添加 `"my-utils": "link:../my-lib"`
+
+---
+
+## TypeScript 注意事项
+
+```json
+// my-lib/package.json
+{
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  }
+}
+```
+
+开启 watch 模式自动编译：
+
+```bash
+# pnpm
+pnpm tsc --watch
+
+# npm
+npx tsc --watch
+
+# bun
+bun --watch src/index.ts
+```
+
+---
+
+## 常见问题
+
+### 修改后没生效？
+
+构建工具可能有缓存：
+
+```bash
+# 重启开发服务器
+pnpm dev  # 或 npm run dev / bun dev
+
+# Vite 排除该包
+// vite.config.ts
+export default defineConfig({
+  optimizeDeps: { exclude: ['my-utils'] }
+})
+```
+
+### 依赖冲突？
+
+将共享包设为 `peerDependencies`：
+
+```json
+{
+  "peerDependencies": {
+    "react": ">=18.0.0"
+  }
+}
+```
+
+---
+
+## 总结
+
+| 场景     | pnpm                 | npm                   | bun               |
+| -------- | -------------------- | --------------------- | ----------------- |
+| 临时调试 | `pnpm link --global` | `npm link`            | `bun link`        |
+| 长期开发 | `pnpm add ../path`   | `npm install ../path` | `bun add ../path` |
+
+**最佳实践**：临时调试用 link，长期开发用路径依赖，相关项目直接用 workspace。
