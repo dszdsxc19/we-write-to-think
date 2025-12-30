@@ -690,11 +690,102 @@ code --install-extension oderwat.indent-rainbow
 
 ---
 
-## 第八阶段：娱乐工具
+## 使用 Homebrew Bundle 管理安装列表
+
+对于需要在新电脑上复现环境，或团队共享开发环境的情况，推荐使用 Homebrew Bundle 通过 `Brewfile` 管理安装列表。
+
+### 创建 Brewfile
+
+将所有安装命令整理到一个文件中，方便版本控制和环境迁移：
 
 ```bash
-brew install --cask spotify overcast
+# 创建 Brewfile
+touch ~/Brewfile
+
+# 追加以下内容（根据实际需求修改）
+cat > ~/Brewfile << 'EOF'
+# CLI 工具
+brew "git"
+brew "delta"
+brew "bat"
+brew "eza"
+brew "fd"
+brew "ripgrep"
+brew "fzf"
+brew "zoxide"
+brew "jq"
+brew "jc"
+brew "btop"
+brew "duf"
+brew "ncdu"
+brew "httpie"
+brew "atuin"
+brew "starship"
+brew "zsh-syntax-highlighting"
+brew "zsh-autosuggestions"
+brew "fnm"
+brew "asdf"
+brew "lazygit"
+brew "gh"
+brew "pgcli"
+brew "litecli"
+brew "mycli"
+brew "noti"
+brew "terminal-notifier"
+brew "fastfetch"
+brew "pv"
+brew "progress"
+brew "task"
+brew "timewarrior"
+brew "chezmoi"
+brew "ollama"
+brew "yt-dlp"
+brew "ffmpeg"
+
+# GUI 应用
+cask "ghostty"
+cask "orbstack"
+cask "the-unarchiver"
+cask "raycast"
+cask "shottr"
+cask "datagrip"
+cask "mongodb-compass"
+cask "tinyrdm"
+cask "iina"
+cask "obs"
+cask "handbrake"
+cask "downie"
+cask "skim"
+cask "figma"
+cask "spotify"
+cask "wechat"
+cask "qq"
+cask "dingtalk"
+cask "telegram"
+cask "discord"
+cask "whatsapp"
+cask "zoom"
+cask "tencent-meeting"
+EOF
 ```
+
+### 批量安装
+
+在新电脑上只需一行命令即可安装所有软件：
+
+```bash
+brew bundle install --file=~/Brewfile
+```
+
+### 其他常用命令
+
+```bash
+brew bundle dump  # 将当前已安装的软件导出为 Brewfile
+brew bundle check # 检查 Brewfile 中的软件是否已安装
+brew bundle cleanup # 卸载不在 Brewfile 中的软件
+```
+
+> **最佳实践**：将 `Brewfile` 纳入 dotfiles 仓库（如 GitHub），实现开发环境的版本控制和快速复现。
 
 ---
 
@@ -720,14 +811,8 @@ brew install --cask raycast shottr
 # ===== 媒体工具 =====
 brew install --cask iina obs handbrake downie
 
-# ===== 图片与 PDF =====
-brew install --cask pixea skim
-
 # ===== 设计工具 =====
 brew install --cask figma
-
-# ===== 娱乐工具 =====
-brew install --cask spotify overcast
 
 # ===== 通讯工具 =====
 brew install --cask wechat qq dingtalk telegram discord whatsapp zoom tencent-meeting
@@ -777,7 +862,7 @@ echo "📦 安装 GUI 应用..."
 brew install --cask ghostty orbstack the-unarchiver raycast shottr
 brew install --cask datagrip mongodb-compass tinyrdm
 brew install --cask iina obs handbrake downie
-brew install --cask pixea skim figma spotify overcast
+brew install --cask skim figma
 brew install --cask wechat qq dingtalk telegram discord whatsapp zoom tenmonkey
 
 # 配置 ~/.zshrc
