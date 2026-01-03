@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useDeferredValue } from 'react'
+import { useState, useDeferredValue, useMemo } from 'react'
 import { usePathname } from '@/navigation'
 import { formatDate } from 'pliny/utils/formatDate'
 import { CoreContent } from 'pliny/utils/contentlayer'
@@ -74,10 +74,21 @@ export default function ListLayout({
 }: ListLayoutProps) {
   const [searchValue, setSearchValue] = useState('')
   const deferredSearchValue = useDeferredValue(searchValue)
-  const filteredBlogPosts = posts.filter((post) => {
-    const searchContent = post.title + post.summary + post.tags?.join(' ')
-    return searchContent.toLowerCase().includes(deferredSearchValue.toLowerCase())
-  })
+
+  // Pre-compute search content to avoid string concatenation on every filter pass
+  const postsWithSearchContent = useMemo(() => {
+    return posts.map((post) => ({
+      post,
+      searchContent: (post.title + post.summary + (post.tags?.join(' ') || '')).toLowerCase(),
+    }))
+  }, [posts])
+
+  const filteredBlogPosts = useMemo(() => {
+    const searchLower = deferredSearchValue.toLowerCase()
+    return postsWithSearchContent
+      .filter(({ searchContent }) => searchContent.includes(searchLower))
+      .map(({ post }) => post)
+  }, [postsWithSearchContent, deferredSearchValue])
 
   // If initialDisplayPosts exist, display it if no searchValue is specified
   const displayPosts =

@@ -1,0 +1,3 @@
+## 2024-05-23 - Client-Side Search Performance
+**Learning:** In client-side search implementations where the dataset is passed as props (e.g., filtered by parent or static), pre-computing the search index (string concatenation of searchable fields) outside the render loop using `useMemo` significantly reduces per-render cost during user input.
+**Action:** When implementing client-side filtering on moderate-to-large lists, always separate the "indexing" phase (creating the searchable string) from the "filtering" phase (checking against query) to avoid O(N) string allocations on every keystroke.
