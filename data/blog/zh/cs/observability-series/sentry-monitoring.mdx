@@ -1,0 +1,894 @@
+---
+title: '使用 Sentry 做前端异常监控 - 被劫持的浏览器 API'
+date: '2026-01-10 14:00:00'
+tags: ['Sentry', '可观测性', '前端监控', '异常捕获']
+draft: false
+summary: '从一个 CRM 应用中未捕获的 Promise 异常开始，深入 Sentry 如何通过劫持浏览器 API 实现自动异常捕获与用户行为追踪。'
+series: '可观测性系列'
+step: 3
+---
+
+## 引子：CRM 客户列表页的"静默失败"
+
+那年刚接手一个 CRM 系统，客服团队经常收到用户投诉："客户列表加载不出来，刷新几次才好"。我在本地复现了很久都没问题，直到有一天生产环境报了一堆同样的错误——控制台里只有一个孤零零的 "Uncaught (in promise)"，连错误类型都没有。
+
+打开 Network 面板，发现 `/api/customers` 接口返回了 401，但前端代码里这个 Promise 没有 `.catch()`，错误就这么默默地被浏览器吞掉了。用户看到的是空白列表，控制台里只有一行红色警告，服务器日志里什么都没有。
+
+这种"静默失败"最要命——因为太安静了，你根本不知道它在发生。要解决这个问题，我决定接入 Sentry。接入之后的第一天，就捕获了 237 个不同类型的异常，其中 70% 都是 Promise 未捕获错误。
+
+今天就把这次接入的经验分享一下，聊聊 Sentry 是如何通过劫持浏览器 API，把那些"安静"的异常变成"响亮"的告警。
+
+## 前端异常的类型学
+
+在理解 Sentry 之前，我们得先搞清楚浏览器里都有哪些异常。JavaScript 的异常种类堪比动物园，每种都有自己的脾气：
+
+| 异常类型             | 典型场景                              | 捕获方式                              | 能被 window.onerror 捕获吗 |
+| -------------------- | ------------------------------------- | ------------------------------------- | -------------------------- |
+| **代码执行异常**     | TypeError, ReferenceError, RangeError | `try...catch` 或全局 `error` 事件     | ✅ 可以                    |
+| **Promise 未捕获**   | `Promise.reject()` 没有 `.catch()`    | `unhandledrejection` 事件             | ❌ 不行                    |
+| **静态资源加载失败** | 图片、CSS、JS 404                     | `error` 事件（捕获阶段）              | ❌ 不行                    |
+| **网络请求错误**     | XHR/fetch 失败                        | XHR 的 `onerror`、fetch 的 `.catch()` | ❌ 不行                    |
+| **跨域脚本异常**     | 第三方脚本报错                        | `error` 事件，但只有 "Script error"   | ✅ 能捕获，但没有详情      |
+
+最坑的就是 Promise 未捕获异常。像我们 CRM 的那个场景：
+
+```javascript
+// 问题代码
+async function loadCustomers() {
+  const response = await fetch('/api/customers')
+  const customers = await response.json()
+  renderCustomerList(customers)
+}
+
+// 调用方没有 catch
+loadCustomers() // 如果 fetch 失败，这里会静默失败
+```
+
+当 `/api/customers` 返回 401 或 500 时，`fetch` 会抛出异常，但因为调用方没有 `.catch()`，这个异常就被浏览器丢弃了。用户只能看到"加载失败"的 UI，而开发者什么都不知道。
+
+## Sentry 的核心手法：API 劫持
+
+Sentry 做异常监控的原理，用一句话概括：**把能劫持的浏览器 API 全部劫持一遍**。
+
+### 第一步：劫持全局错误入口
+
+最基础的两招是 `window.onerror` 和 `window.onunhandledrejection`：
+
+```javascript
+// 保存原始处理器
+const oldErrorHandler = window.onerror
+
+// 覆写全局错误处理器
+window.onerror = function (msg, url, line, column, error) {
+  // 收集异常信息并上报
+  triggerHandlers('error', {
+    column,
+    error,
+    line,
+    msg,
+    url,
+  })
+
+  // 调用原始处理器，不破坏原有逻辑
+  if (oldErrorHandler) {
+    return oldErrorHandler.apply(this, arguments)
+  }
+  return false
+}
+
+// 同样处理 Promise 异常
+const oldRejectionHandler = window.onunhandledrejection
+window.onunhandledrejection = function (e) {
+  triggerHandlers('unhandledrejection', e)
+
+  if (oldRejectionHandler) {
+    return oldRejectionHandler.apply(this, arguments)
+  }
+  return true
+}
+```
+
+这个代码看起来简单，但有两个关键点：
+
+1. **先上报再回调**：保证自己的监控逻辑一定执行
+2. **保留原始处理器**：不破坏应用可能已经注册的其他错误处理逻辑
+
+在 CRM 系统里接入这个后，我们立马就看到了那个 `/api/customers` 的 401 错误，错误信息里还有完整的 Promise rejection reason。
+
+### 第二步：劫持定时器和事件回调
+
+光靠全局错误处理器还不够，因为错误发生时的上下文信息会丢失。比如一个按钮点击事件里抛出异常，你只能看到 "ReferenceError: xxx is not defined"，但不知道是哪个按钮触发的。
+
+Sentry 的解法是劫持这些 API，在回调外面包一层 `try...catch`：
+
+#### 劫持 setTimeout / setInterval
+
+```javascript
+const originSetTimeout = window.setTimeout
+
+window.setTimeout = function (callback, delay, ...args) {
+  const wrapped = wrap$1(callback, {
+    mechanism: {
+      data: {
+        function: getFunctionName(callback),
+      },
+      handled: true,
+      type: 'setTimeout', // 标记这是定时器回调里的异常
+    },
+  })
+
+  return originSetTimeout.apply(this, [wrapped, delay, ...args])
+}
+```
+
+当回调执行出错时，Sentry 知道这个异常发生在 `setTimeout` 上下文里，还能记录回调函数的名字。
+
+#### 劫持 addEventListener
+
+DOM 节点的 `addEventListener` 继承自 `Node.prototype`，Sentry 直接覆写了这个原型方法：
+
+```javascript
+const proto = window.Node.prototype
+
+fill(proto, 'addEventListener', function (original) {
+  return function (eventName, fn, options) {
+    // 如果是 handleEvent 方式
+    if (typeof fn.handleEvent === 'function') {
+      fn.handleEvent = wrap$1(fn.handleEvent.bind(fn), {
+        mechanism: {
+          data: {
+            function: 'handleEvent',
+            handler: getFunctionName(fn),
+            target: this,
+          },
+          handled: true,
+          type: 'instrument',
+        },
+      })
+    }
+
+    // 普通回调函数包装
+    return original.call(this, [
+      eventName,
+      wrap$1(fn, {
+        mechanism: {
+          data: {
+            function: 'addEventListener',
+            handler: getFunctionName(fn),
+            target: this,
+          },
+          handled: true,
+          type: 'instrument',
+        },
+      }),
+      options,
+    ])
+  }
+})
+```
+
+这样当一个点击事件里的代码出错时，Sentry 不光能捕获异常，还能上报事件名称、目标节点信息、处理函数名等上下文。
+
+在 CRM 里，我们经常会遇到用户点击"删除客户"按钮时出错，有了这个机制，我们能立即知道是哪个按钮、在哪个页面、由哪个处理函数引发的异常。
+
+### 第三步：劫持网络请求
+
+XHR 的劫持更复杂，因为它的错误分散在多个生命周期方法里。Sentry 的做法是劫持 `XMLHttpRequest.prototype.send`，在调用时再劫持实例的 `onload`、`onerror`、`onprogress`、`onreadystatechange`：
+
+```javascript
+function _wrapXHR(originalSend) {
+  return function () {
+    const xhr = this
+    const xmlHttpRequestProps = ['onload', 'onerror', 'onprogress', 'onreadystatechange']
+
+    // 劫持各个事件处理器
+    xmlHttpRequestProps.forEach(function (prop) {
+      if (prop in xhr && typeof xhr[prop] === 'function') {
+        fill(xhr, prop, function (original) {
+          return wrap$1(original, {
+            mechanism: {
+              data: {
+                function: prop,
+                handler: getFunctionName(original),
+              },
+              handled: true,
+              type: 'instrument',
+            },
+          })
+        })
+      }
+    })
+
+    return originalSend.apply(xhr, arguments)
+  }
+}
+
+// 覆写 XMLHttpRequest.prototype.send
+fill(XMLHttpRequest.prototype, 'send', _wrapXHR)
+```
+
+Fetch 的劫持类似，但更简单，因为它是 Promise-based 的：
+
+```javascript
+const originFetch = window.fetch
+
+window.fetch = function (...args) {
+  const handlerData = {
+    args,
+    fetchData: {
+      method: getFetchMethod(args),
+      url: getFetchUrl(args),
+    },
+    startTimestamp: Date.now(),
+  }
+
+  triggerHandlers('fetch', handlerData)
+
+  return originFetch.apply(window, args).then(
+    function (response) {
+      triggerHandlers('fetch', {
+        ...handlerData,
+        endTimestamp: Date.now(),
+        response,
+      })
+      return response
+    },
+    function (error) {
+      triggerHandlers('fetch', {
+        ...handlerData,
+        endTimestamp: Date.now(),
+        error,
+      })
+      throw error
+    }
+  )
+}
+```
+
+## Sentry 的实际接入：从零到一
+
+### 安装和初始化
+
+在 CRM 项目里，我们用的是 React，所以安装了 Sentry 的 React SDK：
+
+```bash
+npm install @sentry/react
+```
+
+然后在 `src/index.tsx` 或 `src/main.tsx` 里初始化：
+
+```javascript
+import * as Sentry from '@sentry/react'
+import { BrowserTracing } from '@sentry/tracing'
+
+Sentry.init({
+  dsn: 'https://xxx@sentry.io/xxx', // 从 Sentry 控制台获取
+  integrations: [
+    new BrowserTracing({
+      tracePropagationTargets: ['localhost', /^https:\/\/yourdomain\.com/],
+    }),
+  ],
+
+  // 性能监控采样率（0-1，1 表示 100%）
+  tracesSampleRate: 0.1,
+
+  // 错误上报采样率（0-1，1 表示 100%）
+  replaysSessionSampleRate: 0.1,
+  replaysOnErrorSampleRate: 1.0,
+
+  // 环境信息
+  environment: process.env.NODE_ENV,
+  release: 'crm-app-v1.2.0',
+})
+```
+
+### React Error Boundary
+
+对于 React 组件里的错误，Sentry 提供了 `Sentry.ErrorBoundary` 组件：
+
+```javascript
+import * as Sentry from '@sentry/react'
+
+function CustomerList() {
+  return (
+    <Sentry.ErrorBoundary fallback={ErrorFallback}>
+      <CustomerDataTable />
+    </Sentry.ErrorBoundary>
+  )
+}
+
+function ErrorFallback({ error, resetError }) {
+  return (
+    <div className="error-container">
+      <h2>加载失败</h2>
+      <p>{error.message}</p>
+      <button onClick={resetError}>重试</button>
+    </div>
+  )
+}
+```
+
+当 `CustomerDataTable` 组件内部抛出异常时，这个错误会被自动上报到 Sentry，并展示 `ErrorFallback` 组件。
+
+### 手动上报异常
+
+对于业务逻辑里的异常，也可以手动上报：
+
+```javascript
+import * as Sentry from '@sentry/react'
+
+try {
+  const response = await fetch('/api/customers')
+  if (!response.ok) {
+    throw new Error(`请求失败: ${response.status}`)
+  }
+  const customers = await response.json()
+} catch (error) {
+  // 手动上报异常
+  Sentry.captureException(error)
+
+  // 添加额外的上下文
+  Sentry.setContext('customer_load', {
+    page: 'customer_list',
+    userId: currentUser.id,
+  })
+
+  // 展示错误 UI
+  showErrorNotification('加载客户列表失败')
+}
+```
+
+### 敏感信息脱敏
+
+CRM 系统里经常有敏感信息（客户电话、邮箱等），在上报前需要过滤：
+
+```javascript
+Sentry.init({
+  dsn: 'your-dsn',
+  beforeSend(event, hint) {
+    // 过滤掉包含密码的错误
+    if (event.message && event.message.includes('password')) {
+      return null
+    }
+
+    // 过滤请求体中的敏感字段
+    if (event.request) {
+      event.request.data = filterSensitiveData(event.request.data)
+    }
+
+    return event
+  },
+})
+
+function filterSensitiveData(data) {
+  const sensitiveFields = ['password', 'phone', 'email', 'token']
+
+  if (!data || typeof data !== 'object') {
+    return data
+  }
+
+  const filtered = { ...data }
+  for (const field of sensitiveFields) {
+    if (field in filtered) {
+      filtered[field] = '***REDACTED***'
+    }
+  }
+
+  return filtered
+}
+```
+
+## 用户行为：从旁观者变成目击者
+
+Sentry 的另一个"黑科技"是用户行为追踪。光有异常堆栈还不够，如果能知道"用户在报错前做了什么"，排查效率能提升 10 倍。
+
+### 页面跳转行为
+
+为了记录用户跳转路径，Sentry 劫持了 `history.pushState`、`history.replaceState` 和 `window.onpopstate`：
+
+```javascript
+const originPushState = window.history.pushState
+const originReplaceState = window.history.replaceState
+let lastHref = window.location.href
+
+window.history.pushState = function (...args) {
+  const url = args.length > 2 ? args[2] : undefined
+  if (url) {
+    const to = String(url)
+    triggerHandlers('history', {
+      from: lastHref,
+      to,
+    })
+    lastHref = to
+  }
+  return originPushState.apply(this, args)
+}
+
+window.onpopstate = function () {
+  const to = window.location.href
+  triggerHandlers('history', {
+    from: lastHref,
+    to,
+  })
+  lastHref = to
+  if (oldOnPopState) {
+    return oldOnPopState.apply(this, arguments)
+  }
+}
+```
+
+这样 Sentry 就能重建用户的访问路径：`登录页 → 客户列表 → 客户详情 → 编辑表单`。如果某个页面报错率特别高，结合路径数据就能快速定位问题入口。
+
+在 CRM 系统里，我们通过这个功能发现：80% 的错误都发生在"客户详情 → 编辑表单"这个路径上，原来是因为某些客户数据格式异常，导致表单初始化失败。
+
+### 鼠标和键盘行为
+
+Sentry 采用了"双保险"策略来监控点击和键盘事件：
+
+1. **事件代理**：在 `document` 上监听 `click` 和 `keypress`
+2. **API 劫持**：覆写 `Node.prototype.addEventListener`，额外注册一个监听器
+
+```javascript
+function instrumentDOM() {
+  const triggerDOMHandler = triggerHandlers.bind(null, 'dom')
+  const globalDOMEventHandler = makeDOMEventHandler(triggerDOMHandler, true)
+
+  // 方案 1：事件代理
+  document.addEventListener('click', globalDOMEventHandler, false)
+  document.addEventListener('keypress', globalDOMEventHandler, false)
+
+  // 方案 2：劫持 addEventListener
+  fill(Node.prototype, 'addEventListener', function (original) {
+    return function (type, listener, options) {
+      // 如果是 click 或 keypress 事件
+      if (type === 'click' || type === 'keypress') {
+        const handlers = (this.__sentry_instrumentation_handlers__ =
+          this.__sentry_instrumentation_handlers__ || {})
+
+        if (!handlers[type]) {
+          handlers[type] = {
+            refCount: 0,
+            handler: makeDOMEventHandler(triggerDOMHandler),
+          }
+
+          // 额外注册一个监听器用于追踪
+          original.call(this, type, handlers[type].handler, options)
+        }
+
+        handlers[type].refCount += 1
+      }
+
+      // 正常注册用户提供的监听器
+      return original.call(this, type, listener, options)
+    }
+  })
+}
+```
+
+这个设计很聪明。事件代理能捕获大部分点击，但如果用户在事件回调里调用了 `event.stopPropagation()`，代理监听器就收不到事件了。这时 API 劫持就派上用场——因为劫持发生在代理之前，所以不受 `stopPropagation` 影响。
+
+而且，Sentry 还会记录点击节点的父级路径（比如 `button#delete-customer > div.actions > tr.customer-row`），方便快速定位页面元素。
+
+### Console 日志行为
+
+最后，Sentry 把 `console` 的几个方法也劫持了：
+
+```javascript
+;['debug', 'info', 'warn', 'error', 'log', 'assert'].forEach(function (level) {
+  const original = console[level]
+  console[level] = function (...args) {
+    triggerHandlers('console', { args, level })
+    return original.apply(console, args)
+  }
+})
+```
+
+这样开发者在调试时打印的信息也会被记录下来。如果线上出了问题，结合 console 日志和用户行为路径，就能复现当时的场景。
+
+### Session Replay
+
+Sentry 还有一个强大的功能：**Session Replay（会话回放）**。它会录制用户的操作过程，就像视频一样：
+
+```javascript
+Sentry.init({
+  dsn: 'your-dsn',
+  integrations: [
+    new Sentry.Replay({
+      // 录制采样率
+      sessionSampleRate: 0.1,
+
+      // 错误时 100% 录制
+      errorSampleRate: 1.0,
+
+      // 遮蔽敏感元素
+      maskAllText: false,
+      blockAllMedia: true,
+    }),
+  ],
+})
+```
+
+在 CRM 系统里，我们通过 Session Replay 看到一个用户连续 3 次点击"删除客户"按钮，但每次都失败——原来是因为他鼠标移得太快，点击动画还没完成就移开了，导致事件被取消。这个细节在错误堆栈里根本看不到。
+
+## 可观测性：从监控到洞察
+
+在深入 Trace ID 之前，我们先聊聊**可观测性（Observability）**这个概念。
+
+很多人把"监控"和"可观测性"混为一谈，但它们是两个层次的概念：
+
+| 维度         | 监控 (Monitoring)                   | 可观测性 (Observability)                     |
+| ------------ | ----------------------------------- | -------------------------------------------- |
+| **核心目标** | 知道"系统是否正常"                  | 理解"系统发生了什么"                         |
+| **数据类型** | 预定义的指标（CPU、内存、响应时间） | 日志、指标、追踪链路 (Logs、Metrics、Traces) |
+| **反应方式** | 被动告警（超过阈值就报警）          | 主动分析（可以问任何问题）                   |
+| **问题定位** | 知道"哪里出错了"                    | 知道"为什么出错"以及"怎么发生的"             |
+
+可观测性的三大支柱：
+
+1. **Metrics（指标）**：数值化的统计数据，比如请求 QPS、错误率、P95 响应时间
+2. **Logs（日志）**：离散的事件记录，比如 "用户 123 登录失败"
+3. **Traces（追踪）**：请求的完整调用链，记录从入口到数据库的每一跳
+
+> 💡 这篇文章的[第一篇](/zh/blog/system-observation)详细讨论了如何从系统视角理解可观测性，推荐阅读。
+
+Sentry 本质上是一个前端错误监控系统，它通过劫持浏览器 API 收集日志（错误堆栈）和追踪（trace_id），但在**Metrics（指标）** 方面比较弱——它无法告诉你"这个接口的 P95 响应时间是多少"、"最近一小时有多少用户访问了这个页面"。
+
+这时候就需要**更强的工具**。
+
+## Trace ID 与 ARMS：更强大的链路追踪
+
+Sentry 通过 `trace_id` 实现了基础的分布式追踪，但如果你想构建完整的可观测体系，**阿里云 ARMS（应用实时监控服务）**是更强大的选择。
+
+### ARMS vs Sentry：能力对比
+
+| 能力                | Sentry                   | ARMS 应用监控                      |
+| ------------------- | ------------------------ | ---------------------------------- |
+| **核心定位**        | 前端错误监控 + 基础追踪  | 全栈 APM（前端 + 后端 + 数据库）   |
+| **Metrics（指标）** | 基础性能指标（采样率低） | 丰富的黄金指标（吞吐、错误、延迟） |
+| **Logs（日志）**    | 错误日志 + 上下文        | 支持接入应用日志、系统日志         |
+| **Traces（追踪）**  | 基础分布式追踪           | 端到端全链路追踪，支持调用拓扑     |
+| **告警能力**        | 错误频率告警             | 多维度告警（指标、日志、链路）     |
+| **自定义指标**      | 不支持                   | 支持业务指标（订单数、转化率等）   |
+| **诊断工具**        | Session Replay           | 代码级持续剖析、Arthas 在线诊断    |
+| **部署方式**        | 开源 SDK，SaaS 或自建    | 阿里云托管，一键接入               |
+
+### 为什么需要 ARMS？
+
+回到 CRM 系统的案例。接入 Sentry 后，我们能快速捕获前端错误，但遇到下面这些问题时，Sentry 就力不从心了：
+
+**场景一：性能瓶颈定位**
+
+用户投诉"客户详情页加载很慢"。Sentry 只能告诉你这个页面花了 2.3 秒，但不知道这 2.3 秒花在了哪里——是前端渲染慢？还是后端接口慢？还是数据库查询慢？
+
+ARMS 的全链路追踪能给出答案：
+
+```
+[浏览器] 页面加载总耗时: 2300ms
+  ↓ (trace_id: abc123)
+[前端资源] bundle.js: 800ms, CSS: 300ms
+  ↓
+[后端 API] /api/customers/123: 900ms
+  ├─ [Java] 用户鉴权: 50ms
+  ├─ [Java] 查询客户基础信息: 200ms
+  └─ [PostgreSQL] SELECT * FROM customers: 650ms ⚠️ 慢查询
+  ↓
+[前端渲染] React 组件挂载: 300ms
+```
+
+一眼就能看出瓶颈在数据库的慢查询。
+
+**场景二：业务指标监控**
+
+客服团队问你："昨天有多少客户删除操作失败了？"Sentry 无法回答这个问题，因为它只记录错误，不记录业务指标。
+
+ARMS 支持自定义指标采集，你可以上报业务数据：
+
+```javascript
+// 在 CRM 系统里上报自定义指标
+import '@alicloud/opentelemetry-sdk'
+
+const meter = opentelemetry.getMeter('crm')
+
+// 创建计数器：记录删除客户操作的次数和失败次数
+const deleteCounter = meter.createCounter('customer.delete', {
+  description: '删除客户操作次数',
+})
+
+// 创建直方图：记录删除操作的耗时
+const deleteDuration = meter.createHistogram('customer.delete.duration', {
+  description: '删除操作耗时',
+})
+
+async function deleteCustomer(customerId) {
+  const startTime = Date.now()
+
+  try {
+    // 业务逻辑
+    await api.deleteCustomer(customerId)
+
+    deleteCounter.add(1, { status: 'success' })
+  } catch (error) {
+    deleteCounter.add(1, { status: 'failed' })
+
+    // 同时上报到 Sentry
+    Sentry.captureException(error)
+    throw error
+  } finally {
+    deleteDuration.record(Date.now() - startTime)
+  }
+}
+```
+
+然后在 ARMS 控制台就能看到：
+
+- `customer_delete_total{status="failed"}`：昨天删除失败的次数
+- `customer_delete_duration{p95}`：删除操作的 P95 耗时
+- 还可以设置告警：失败率超过 5% 时发送钉钉通知
+
+**场景三：调用拓扑与依赖分析**
+
+Sentry 只能看到单个请求的调用链，无法看到服务之间的依赖关系。ARMS 的**服务拓扑**功能能自动绘制服务间的调用关系图：
+
+```
+        ┌─────────┐
+        │  前端  │
+        └────┬────┘
+             │
+        ┌────▼────────┐
+        │  网关 API  │
+        └────┬────────┘
+             │
+    ┌────────┼────────┐
+    │        │        │
+┌───▼──┐ ┌───▼──┐ ┌─▼────────┐
+│用户服务│ │订单服务│ │CRM服务   │
+└───┬──┘ └───┬──┘ └─┬────────┘
+    │        │        │
+    └────────┼────────┘
+             │
+        ┌────▼────┐
+        │PostgreSQL│
+        └─────────┘
+```
+
+当某个服务响应变慢时，你能在拓扑图上一眼看出是哪个服务出了问题，还能看到服务之间的 QPS、错误率、延迟分布。
+
+### Trace ID 的价值再升级
+
+有了 ARMS，Trace ID 不再只是关联前端和后端日志，而是串联了**全链路的可观测数据**：
+
+```javascript
+// 前端发起请求时携带 trace_id
+const response = await fetch('/api/customers/123', {
+  headers: {
+    'sentry-trace': currentTraceId,
+    traceparent: `00-${currentTraceId}-01`, // OpenTelemetry 标准
+  },
+})
+```
+
+这个 `trace_id` 会：
+
+1. **前端**：Sentry 捕获错误时自动关联
+2. **后端**：ARMS 采集日志时自动注入
+3. **数据库**：慢查询日志里自动附加
+4. **消息队列**：消息头里自动传递
+5. **第三方服务**：HTTP header 里自动携带
+
+你在 ARMS 控制台点开任何一个 `trace_id`，就能看到：
+
+- 📊 **Metrics**：这条请求经过的每个服务的 QPS、延迟、错误率
+- 📝 **Logs**：每个服务打印的相关日志
+- 🔍 **Traces**：详细的调用链，包括函数级的性能剖析
+- 📈 **Top N**：热点 SQL、慢查询、热点 API
+
+这就是**完整的可观测体系**——不止知道"出错了"，还知道"为什么出错"、"影响了谁"、"怎么修"。
+
+### 接入 ARMS 的三步走
+
+```bash
+# 1. 安装 ARMS Agent（Java 应用为例）
+wget https://arms-apm-{region}.oss-{region}.aliyuncs.com/ArmsAgent/java/arms-agent-{version}.tar.gz
+
+# 2. 配置应用信息
+cat > arms-agent.config << EOF
+app.name=crm-app
+app.id=your-app-id
+license.licenseKey=your-license-key
+EOF
+
+# 3. 启动应用
+java -javaagent:arms-agent.jar -jar crm-app.jar
+```
+
+前端接入也类似，在 HTML 里添加 ARMS 探针：
+
+```html
+<script>
+  window.__ARMS_CONFIG__ = {
+    pid: 'your-pid',
+    uid: 'user-' + currentUser.id,
+    sampleRate: 0.1,
+  }
+</script>
+<script src="https://arms-retcode-{region}.aliyuncs.com/retcode/bl.js"></script>
+```
+
+> ⚠️ **注意**：如果你的应用已经接入了 Sentry，不要删除。可以同时使用：
+>
+> - Sentry 专注于前端错误捕获和 Session Replay
+> - ARMS 专注于全链路追踪和性能监控
+>
+> 两者的 trace_id 可以互相透传，实现数据联动。
+
+## 接入 Sentry 之后的效果
+
+回到开头 CRM 系统的问题。接入 Sentry 一个月后，我们总结了一下效果：
+
+| 指标                         | 接入前   | 接入后            |
+| ---------------------------- | -------- | ----------------- |
+| 用户反馈到发现问题的平均时间 | 3-5 天   | 实时（< 5 分钟）  |
+| 定位问题根源的平均时间       | 2-4 小时 | 15-30 分钟        |
+| 每周修复的 bug 数            | 5-8 个   | 15-20 个          |
+| 静默失败的错误               | 无法统计 | 每天捕获 30-50 个 |
+
+最直观的感受是：**不再"被动等用户投诉"，而是"主动发现问题"**。
+
+比如有一天早上打开 Sentry，发现 `/api/customers` 接口在特定时间段（凌晨 2-3 点）出现了大量 503 错误。查看用户行为回放，发现这段时间几乎没有用户操作，错误都是后台定时任务触发的。我们查了一下定时任务的代码，发现是在做批量数据同步时没有做重试机制。当天就修复了这个问题，用户根本不知道出过故障。
+
+## 最佳实践与踩坑指南
+
+### 1. 合理设置采样率
+
+性能监控和 Session Replay 都会消耗资源，生产环境要合理设置采样率：
+
+```javascript
+Sentry.init({
+  // 性能监控：10% 采样
+  tracesSampleRate: 0.1,
+
+  // Session Replay：正常时 10%，出错时 100%
+  replaysSessionSampleRate: 0.1,
+  replaysOnErrorSampleRate: 1.0,
+})
+```
+
+### 2. 分环境使用 DSN
+
+开发环境、测试环境、生产环境使用不同的 DSN，避免混淆：
+
+```javascript
+const dsnMap = {
+  development: 'https://xxx@sentry.io/dev',
+  staging: 'https://xxx@sentry.io/staging',
+  production: 'https://xxx@sentry.io/prod',
+}
+
+Sentry.init({
+  dsn: dsnMap[process.env.NODE_ENV],
+  environment: process.env.NODE_ENV,
+})
+```
+
+### 3. 设置 Source Maps
+
+生产环境的代码通常是压缩混淆过的，错误堆栈很难看懂。需要上传 Source Maps：
+
+```javascript
+// sentry-cli 上传 source maps
+sentry-cli releases files $RELEASE_NAME upload-sourcemaps ./dist/*.js
+```
+
+这样 Sentry 就能把压缩后的代码映射回原始源码，错误堆栈就能显示准确的文件名和行号。
+
+### 4. 配置告警规则
+
+不要被动地打开 Sentry 看错误，要配置告警：
+
+```javascript
+// 在 Sentry 控制台配置
+- 错误频率超过 10 次/分钟时，发送邮件告警
+- 特定错误类型（如 TypeError）出现时，发送 Slack 通知
+- 新出现的错误类型，立即推送到值班群
+```
+
+在 CRM 系统里，我们配置了"关键接口 5xx 错误超过 5 次/分钟"的告警，这样能在用户还没投诉之前就发现问题。
+
+### 5. 过滤无意义的错误
+
+有些错误不需要关心（比如浏览器扩展抛出的错误），可以过滤掉：
+
+```javascript
+Sentry.init({
+  beforeSend(event, hint) {
+    // 过滤掉浏览器扩展的错误
+    if (event.exception) {
+      for (const exception of event.exception.values) {
+        if (exception.stacktrace) {
+          for (const frame of exception.stacktrace.frames) {
+            if (frame.filename && frame.filename.includes('extension')) {
+              return null
+            }
+          }
+        }
+      }
+    }
+
+    return event
+  },
+})
+```
+
+## 总结：从错误监控到可观测体系
+
+这篇文章我们聊了 Sentry 的异常监控原理，也介绍了 ARMS 的全链路追踪能力。现在可以站在更高层次总结一下：**如何构建完整的前端可观测体系**。
+
+### 三层可观测体系
+
+| 层次                   | 工具                       | 覆盖范围                   | 解决的问题                     |
+| ---------------------- | -------------------------- | -------------------------- | ------------------------------ |
+| **第一层：异常监控**   | Sentry                     | 前端错误 + 用户行为        | 快速捕获异常、回放用户操作     |
+| **第二层：全链路追踪** | ARMS                       | 前端 + 后端 + 数据库       | 定位性能瓶颈、分析调用拓扑     |
+| **第三层：系统观测**   | Chrome DevTools + 系统工具 | 浏览器 + 服务端 + 基础设施 | 理解系统整体行为、发现根本原因 |
+
+这三层是互补的，不是替代关系。在 CRM 系统里，我们同时使用了这三层：
+
+1. **Sentry** 告诉我们"哪个页面报错了"
+2. **ARMS** 告诉我们"错误在哪个服务、哪个接口、哪个数据库查询"
+3. **Chrome DevTools** 告诉我们"前端渲染花了多长时间、哪些资源加载慢"
+
+> 📖 本系列的第一篇文章《[系统视角的观测](/zh/blog/system-observation)》详细讨论了如何从浏览器到数据库构建全栈观测，第二篇《[Network Initiator 调试](/zh/blog/chrome-devtools-initiator)》介绍了如何快速定位请求源头。推荐阅读。
+
+### 可观测性的价值
+
+接入这些工具后，我们发现了一个规律：**可观测性不是为了"看"，而是为了"问"**。
+
+当你遇到一个问题时，可以问：
+
+- ❌ "这个 bug 在哪里？" → 查 Sentry 的错误堆栈
+- ❌ "为什么会慢？" → 查 ARMS 的链路追踪
+- ❌ "影响了多少用户？" → 查 ARMS 的指标大盘
+- ❌ "最近有什么异常趋势？" → 查错误率曲线、慢查询趋势
+- ❌ "这个请求是从哪个页面发起的？" → 查 Network Initiator + trace_id
+
+这些问题在以前需要人工排查、连蒙带猜，现在都能在几分钟内得到答案。
+
+### 落地建议
+
+最后给几个实用建议：
+
+| 场景         | 建议                                                |
+| ------------ | --------------------------------------------------- |
+| 新项目接入   | Sentry（开发环境就接）+ ARMS（上线后再接）          |
+| 采样率设置   | Sentry：性能 10%，Session Replay 1-5%               |
+|              | ARMS：Trace 100%，Metrics 100%（成本可控）          |
+| 敏感信息脱敏 | Sentry：`beforeSend` 过滤                           |
+|              | ARMS：配置数据脱敏规则                              |
+| 告警规则     | Sentry：错误频率告警                                |
+|              | ARMS：指标告警（P95 > 3s、错误率 > 1%）             |
+| 成本控制     | ARMS 按指标上报量计费，合理设置采样率和数据保留时间 |
+| 团队协作     | Sentry + Jira 自动创建 Bug 单                       |
+|              | ARMS + 钉钉/飞书推送告警                            |
+
+### 结语：从"被动救火"到"主动预防"
+
+接入 Sentry 之前，我们的模式是：**用户投诉 → 开发排查 → 修复 bug → 等下次投诉**。
+
+接入 Sentry + ARMS 之后，模式变成了：**告警触发 → 分析链路 → 修复 bug → 彻底根除**。
+
+这就是可观测性的力量——把"救火队"变成"消防系统"，从被动应对变成主动预防。当你的系统拥有完整的 Logs、Metrics、Traces，你就不再害怕线上故障，因为你对它了如指掌。
+
+> **推荐阅读**
+>
+> - 本系列第一篇：[系统视角的观测 - 用 Next.js + Java + PostgreSQL 拆解一个 Web 应用](/zh/blog/system-observation)
+> - 本系列第二篇：[利用 Chrome DevTools Network Initiator 定位请求源头](/zh/blog/chrome-devtools-initiator)
+> - [Sentry 官方文档](https://docs.sentry.io/)
+> - [阿里云 ARMS 文档](https://help.aliyun.com/zh/arms)
+
+---
+
+> **参考资料**
+>
+> - [Sentry 官方文档](https://docs.sentry.io/)
+> - [MDN Error 对象](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Error)
+> - [Juejin: Sentry 是如何做到自动捕获前端应用异常的呢](https://juejin.cn/post/7145420611639050271)
