@@ -1,0 +1,427 @@
+---
+title: MCP 传输层与浏览器适配器详解
+summary: 深入理解 Model Context Protocol 的 Transport 设计、浏览器适配器实现，以及如何开发 MCP Server
+date: '2026-01-10 17:20:00'
+tags: ['web-development', 'tools', 'mvp', 'ai', 'cloud-native', 'paas', 'baas', 'learn-about']
+draft: false
+---
+
+# MCP 传输层与浏览器适配器详解
+
+## 前言
+
+Model Context Protocol（MCP）是 AI agents 连接外部工具的标准化协议。本文深入探讨 MCP 的传输层设计，以及 `@mcp-b/transports` 包如何为浏览器环境提供适配器。
+
+## 什么是 MCP Server
+
+MCP Server 是一个暴露工具（Tools）给 AI agents 调用的服务。一个完整的 MCP Server 包含三个层次：
+
+| 层次         | 职责                          | 示例                        |
+| ------------ | ----------------------------- | --------------------------- |
+| **业务逻辑** | 定义工具、处理参数、返回结果  | `server.tool('hello', ...)` |
+| **MCP 协议** | JSON-RPC 消息解析、协议状态机 | `@modelcontextprotocol/sdk` |
+| **传输层**   | 消息的网络传输方式            | WebSocket、postMessage 等   |
+
+### 最小 MCP Server 示例
+
+```typescript
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
+import { z } from 'zod'
+import { WebsocketServerTransport } from '@modelcontextprotocol/sdk/server/websocket.js'
+
+const server = new McpServer({
+  name: 'my-server',
+  version: '1.0.0',
+})
+
+// 注册工具
+server.tool('hello', '向用户打招呼', { name: z.string() }, async (args) => {
+  return { content: [{ type: 'text', text: `Hello ${args.name}!` }] }
+})
+
+// 连接传输层
+const transport = new WebsocketServerTransport({ port: 3000 })
+await server.connect(transport)
+```
+
+## Transport 是什么
+
+**Transport 是消息的"搬运工"**——它负责将 JSON-RPC 消息从一端传递到另一端，但不关心消息的内容。
+
+```typescript
+// MCP SDK 定义的 Transport 接口
+interface Transport {
+  start(): Promise<void>
+  send(message: JSONRPCMessage): Promise<void>
+  close(): Promise<void>
+
+  onmessage?: (message: JSONRPCMessage) => void
+  onclose?: () => void
+  onerror?: (error: Error) => void
+}
+```
+
+### Transport 的职责
+
+```
+MCP Server ──► JSON-RPC ──► Transport ──► JSON-RPC ──► MCP Client
+              消息                    搬运                    消息
+
+Transport 不关心：
+- 消息是什么内容
+- 工具如何执行
+- 返回什么结果
+
+Transport 只关心：
+- 消息怎么发送
+- 消息怎么接收
+- 连接怎么管理
+```
+
+### 类比：打电话
+
+| 组件          | 电话类比               |
+| ------------- | ---------------------- |
+| JSON-RPC 消息 | 说的话（语言、内容）   |
+| Transport     | 手机/网络（传输通道）  |
+| MCP SDK       | 说话的大脑（处理逻辑） |
+
+## 为什么需要 Transport
+
+MCP 协议只定义了消息格式（JSON-RPC），但消息可以通过多种方式传输：
+
+| 传输方式        | 适用场景        | Server Transport           | Client Transport           |
+| --------------- | --------------- | -------------------------- | -------------------------- |
+| **WebSocket**   | Web 服务器      | `WebsocketServerTransport` | `WebsocketClientTransport` |
+| **Stdio**       | CLI 工具        | `StdioServerTransport`     | （Claude SDK 处理）        |
+| **postMessage** | 浏览器 Tab      | `TabServerTransport`       | `TabClientTransport`       |
+| **Chrome API**  | Chrome 扩展     | `ExtensionServerTransport` | `ExtensionClientTransport` |
+| **iframe**      | 父页面 ↔ iframe | `IframeChildTransport`     | `IframeParentTransport`    |
+
+## Server Transport vs Client Transport
+
+Server 和 Client 都需要 Transport，但职责不同：
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                                                              │
+│   Server                                      Client         │
+│      │                                           │           │
+│      │  Server Transport                         │           │
+│      │  ┌─────────────────────────────────┐      │           │
+│      │  │ • 监听消息入口                   │      │           │
+│      │  │ • 接收 client 请求               │      │           │
+│      │  │ • 发送响应给 client              │      │           │
+│      │  └─────────────────────────────────┘      │           │
+│      │                                           │           │
+│      │         ◄──────────────────────►          │           │
+│      │               Transport                    │           │
+│      │                                           │           │
+│      │  Client Transport                         │           │
+│      │  ┌─────────────────────────────────┐      │           │
+│      │  │ • 发起连接                      │      │           │
+│      │  │ • 发送请求给 server             │      │           │
+│      │  │ • 接收 server 响应              │      │           │
+│      │  └─────────────────────────────────┘      │           │
+│      │                                           │           │
+│      └───────────────────────────────────────────┘           │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+| 端         | Transport 职责   | 类比                 |
+| ---------- | ---------------- | -------------------- |
+| **Server** | 监听、接收、返回 | 电话接线员（等电话） |
+| **Client** | 连接、发送、接收 | 打电话的人（拨号码） |
+
+## @mcp-b/transports 浏览器适配器
+
+官方 MCP SDK 提供了 Node.js 环境的 Transport（WebSocket、Stdio），但**不提供浏览器环境的传输方案**。`@mcp-b/transports` 为浏览器场景提供了完整的适配器实现。
+
+### 架构设计
+
+```
+┌─────────────────────────────────────────────────────┐
+│              @modelcontextprotocol/sdk              │
+│     (定义 Transport 接口、处理 JSON-RPC 消息)         │
+└─────────────────────────┬───────────────────────────┘
+                          │ 实现接口
+┌─────────────────────────┴───────────────────────────┐
+│                 @mcp-b/transports                    │
+│                                                      │
+│  ┌──────────────┐  ┌──────────────┐  ┌────────────┐ │
+│  │   Tab 传输   │  │  Iframe 传输 │  │ Extension  │ │
+│  │ (postMessage)│  │ (postMessage)│  │(chrome API)│ │
+│  └──────────────┘  └──────────────┘  └────────────┘ │
+└─────────────────────────┬───────────────────────────┘
+                          │
+┌─────────────────────────┴───────────────────────────┐
+│              浏览器原生 API                           │
+│   window.postMessage / chrome.runtime.connect       │
+└─────────────────────────────────────────────────────┘
+```
+
+### 设计模式应用
+
+`@mcp-b/transports` 采用了多种设计模式：
+
+| 模式                       | 应用                                                  |
+| -------------------------- | ----------------------------------------------------- |
+| **Strategy 策略模式**      | 每种通信场景有独立的 Transport 类                     |
+| **Template Method**        | 统一的 `start()`/`send()`/`close()` 接口              |
+| **Observer 观察者**        | 通过 `onmessage`/`onclose`/`onerror` 回调处理事件     |
+| **Promise with Resolvers** | 使用 `Promise.withResolvers()` 实现可控的异步状态管理 |
+
+### TabServerTransport 实现解析
+
+```typescript
+export class TabServerTransport implements Transport {
+  private _started = false
+  private _allowedOrigins: string[]
+  private _channelId: string
+  private _messageHandler?: (event: MessageEvent) => void
+  private _clientOrigin?: string
+
+  onclose?: () => void
+  onerror?: (error: Error) => void
+  onmessage?: (message: JSONRPCMessage) => void
+
+  async start(): Promise<void> {
+    if (this._started) {
+      throw new Error('Transport already started')
+    }
+
+    // 注册消息监听器
+    this._messageHandler = (event: MessageEvent) => {
+      // 1. Origin 验证（安全）
+      if (!this._allowedOrigins.includes(event.origin) && !this._allowedOrigins.includes('*')) {
+        return
+      }
+
+      // 2. 消息路由：只处理 MCP 消息
+      if (event.data?.channel !== this._channelId) return
+      if (event.data?.direction !== 'client-to-server') return
+
+      this._clientOrigin = event.origin
+
+      // 3. 握手协议：服务器就绪信号
+      if (event.data.payload === 'mcp-check-ready') {
+        window.postMessage(
+          {
+            channel: this._channelId,
+            type: 'mcp',
+            direction: 'server-to-client',
+            payload: 'mcp-server-ready',
+          },
+          event.origin
+        )
+        return
+      }
+
+      // 4. 解析并回调
+      try {
+        const message = JSONRPCMessageSchema.parse(event.data.payload)
+        this.onmessage?.(message)
+      } catch (error) {
+        this.onerror?.(new Error(`Invalid message: ${error}`))
+      }
+    }
+
+    window.addEventListener('message', this._messageHandler)
+    this._started = true
+
+    // 广播服务器就绪
+    window.postMessage(
+      {
+        channel: this._channelId,
+        type: 'mcp',
+        direction: 'server-to-client',
+        payload: 'mcp-server-ready',
+      },
+      '*'
+    )
+  }
+
+  async send(message: JSONRPCMessage): Promise<void> {
+    if (!this._started) {
+      throw new Error('Transport not started')
+    }
+
+    const targetOrigin = this._clientOrigin || '*'
+
+    window.postMessage(
+      {
+        channel: this._channelId,
+        type: 'mcp',
+        direction: 'server-to-client',
+        payload: message,
+      },
+      targetOrigin
+    )
+  }
+
+  async close(): Promise<void> {
+    if (this._messageHandler) {
+      window.removeEventListener('message', this._messageHandler)
+    }
+    this._started = false
+    this.onclose?.()
+  }
+}
+```
+
+### 消息协议格式
+
+所有传输使用统一的消息信封：
+
+```typescript
+interface McpMessageEnvelope {
+  /** 信道 ID，区分不同 MCP 服务器 */
+  channel: string
+  /** 消息类型，固定为 'mcp' */
+  type: 'mcp'
+  /** 消息方向 */
+  direction: 'client-to-server' | 'server-to-client'
+  /** 消息载荷：JSON-RPC 消息或控制信号 */
+  payload: JSONRPCMessage | 'mcp-check-ready' | 'mcp-server-ready' | 'mcp-server-stopped'
+}
+```
+
+### 传输类型对比
+
+| 传输类型               | 底层 API                         | 适用场景        | Server                             | Client                             |
+| ---------------------- | -------------------------------- | --------------- | ---------------------------------- | ---------------------------------- |
+| **Tab**                | `window.postMessage`             | 同页面/跨域页面 | `TabServerTransport`               | `TabClientTransport`               |
+| **Iframe**             | `window.postMessage`             | 父页面 ↔ iframe | `IframeChildTransport`             | `IframeParentTransport`            |
+| **Extension**          | `chrome.runtime.*`               | 扩展 ↔ 页面     | `ExtensionServerTransport`         | `ExtensionClientTransport`         |
+| **Extension External** | `chrome.runtime.connectExternal` | 扩展 ↔ 扩展     | `ExtensionExternalServerTransport` | `ExtensionExternalClientTransport` |
+
+## @mcp-b/extension-tools Chrome API 工具包
+
+`@mcp-b/extension-tools` 将 Chrome 扩展 API 封装为 MCP 工具，让 AI agents 能够控制浏览器。
+
+### 核心功能
+
+把 **62+ 个 Chrome 扩展 API** 转换为 MCP 工具：
+
+| 类别           | 工具示例                                                          |
+| -------------- | ----------------------------------------------------------------- |
+| **标签页管理** | `TabsApiTools` - 创建、更新、关闭、移动标签页                     |
+| **书签管理**   | `BookmarksApiTools` - 搜索、创建、编辑、删除书签                  |
+| **历史记录**   | `HistoryApiTools` - 搜索浏览历史                                  |
+| **存储**       | `StorageApiTools` - local/sync/session 存储操作                   |
+| **脚本执行**   | `ScriptingApiTools` - 注入脚本和 CSS                              |
+| **下载管理**   | `DownloadsApiTools` - 控制文件下载                                |
+| **窗口管理**   | `WindowsApiTools` - 创建、关闭窗口                                |
+| **其他**       | `CookiesApiTools`、`NotificationsApiTools`、`SessionsApiTools` 等 |
+
+### 使用示例
+
+```typescript
+import { TabsApiTools, BookmarksApiTools } from '@mcp-b/extension-tools'
+import { ExtensionServerTransport } from '@mcp-b/transports'
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
+
+const server = new McpServer({
+  name: 'chrome-extension-server',
+  version: '1.0.0',
+})
+
+// 注册标签页工具
+const tabsTools = new TabsApiTools(server, {
+  listActiveTabs: true,
+  createTab: true,
+  closeTabs: true,
+})
+tabsTools.register()
+
+// 连接传输层
+const transport = new ExtensionServerTransport(port)
+await server.connect(transport)
+```
+
+## 如何选择
+
+```
+                    ┌─────────────────┐
+                    │   你想做什么？    │
+                    └────────┬────────┘
+                             │
+         ┌───────────────────┼───────────────────┐
+         ▼                   ▼                   ▼
+   ┌─────────────┐    ┌──────────────┐    ┌─────────────┐
+   │ 开发工具给   │    │ 开发服务器    │    │ 使用工具    │
+   │ AI 调用     │    │ 给客户端连接  │    │ (不做服务器) │
+   └──────┬──────┘    └──────┬───────┘    └─────────────┘
+          │                  │
+          ▼                  ▼
+   @mcp-b/          需要选 Transport：
+   extension-tools  • Chrome 扩展 → ExtensionServerTransport
+   或               • 网页 → TabServerTransport
+   MCP SDK          • CLI → StdioServerTransport
+```
+
+| 场景                           | 推荐方案                                              |
+| ------------------------------ | ----------------------------------------------------- |
+| 给 Claude Desktop 用的本地工具 | MCP SDK + `StdioServerTransport`                      |
+| Chrome 扩展提供工具            | `@mcp-b/extension-tools` + `ExtensionServerTransport` |
+| 网页提供工具给 AI 控制         | `@mcp-b/transports` + `TabServerTransport`            |
+| 直接使用现有 MCP Server        | **只需要 Client**，不做 Server                        |
+
+## 完整架构图
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      MCP 生态系统                                │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                     AI Client                             │   │
+│  │  Claude Desktop / Cursor / ChatGPT / Windsurf            │   │
+│  └─────────────────────────┬────────────────────────────────┘   │
+│                            │                                     │
+│                            ▼                                     │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                     MCP Client                            │   │
+│  │  @modelcontextprotocol/sdk + Transport                    │   │
+│  └─────────────────────────┬────────────────────────────────┘   │
+│                            │                                     │
+│          ┌─────────────────┼─────────────────┐                  │
+│          ▼                 ▼                 ▼                  │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
+│  │   Stdio      │  │  WebSocket   │  │  Browser     │          │
+│  │  Transport   │  │  Transport   │  │  Transport   │          │
+│  └──────────────┘  └──────────────┘  └──────────────┘          │
+│                            │                                     │
+│                            ▼                                     │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                     MCP Server                            │   │
+│  │  @modelcontextprotocol/sdk + 你的业务逻辑                  │   │
+│  │                                                          │   │
+│  │  ┌─────────────────────────────────────────────────────┐ │   │
+│  │  │  工具定义层                                           │ │   │
+│  │  │  server.tool('name', schema, handler)               │ │   │
+│  │  └─────────────────────────────────────────────────────┘ │   │
+│  │                                                          │   │
+│  │  可选：                                                   │   │
+│  │  • @mcp-b/extension-tools (Chrome API)                   │   │
+│  │  • 其他业务逻辑                                           │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+## 总结
+
+1. **MCP 协议** 定义了 JSON-RPC 消息格式，但不关心传输方式
+2. **Transport** 是消息搬运工，MCP SDK 定义接口，各实现负责具体传输
+3. **Server 和 Client 都需要 Transport**，但职责不同（监听 vs 连接）
+4. **浏览器环境**官方没有提供 Transport，需要 `@mcp-b/transports` 适配
+5. **Chrome 扩展场景**可直接用 `@mcp-b/extension-tools`，它内置了 Transport 支持
+
+## 相关资源
+
+- [Model Context Protocol 官方文档](https://modelcontextprotocol.io)
+- [@mcp-b/transports npm](https://www.npmjs.com/package/@mcp-b/transports)
+- [@mcp-b/extension-tools npm](https://www.npmjs.com/package/@mcp-b/extension-tools)
+- [WebMCP 文档](https://docs.mcp-b.ai)

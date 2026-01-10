@@ -155,7 +155,7 @@ graph TB
     end
 
     subgraph "治理与监控 (Ops Layer)"
-        Logic --> AIGw[AI Gateway (Helicone/Portkey)]
+        Logic --> AIGw["AI Gateway (Helicone/Portkey)"]
         Logic -.-> Tracing[可观测性 (LangSmith)]
         API -.-> Auth[鉴权 (Clerk/NextAuth)]
     end
