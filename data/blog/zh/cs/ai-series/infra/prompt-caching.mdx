@@ -1,0 +1,196 @@
+---
+title: 'Prompt 缓存：LLM Token 成本降低 10 倍，但它是如何工作的？'
+date: '2026-01-10'
+tags: ['AI', 'LLM', 'Prompt 缓存', '基础设施', 'Token 优化']
+draft: false
+summary: '深入解析 Prompt 缓存的工作原理，揭示 LLM 服务商如何通过 KV 缓存技术实现 10 倍 Token 成本降低和 85% 延迟减少。'
+series: 'AI 应用架构'
+seriesOrder: 4
+---
+
+> 本文转载自 [ngrok 官方博客](https://ngrok.com/blog/prompt-caching/)，原文作者详细解释了 Prompt 缓存的底层机制。强烈建议阅读原文以获得最佳体验。
+
+## 前言：Prompt 缓存的经济价值
+
+当我撰写这篇文章时，缓存的输入 Token 在 OpenAI 和 Anthropic 的 API 中，其单位成本比常规输入 Token 便宜 10 倍。
+
+[Anthropic 甚至声称](https://claude.com/blog/prompt-caching) Prompt 缓存可以将长提示的延迟**"降低高达 85%"**。在我自己的测试中，对于足够长的提示，这一说法是成立的。我向 Anthropic 和 OpenAI 发送了数百个请求，发现当所有输入 Token 都被缓存时，首 Token 延迟（Time-to-First-Token）显著降低。
+
+现在，让我们通过几张图表来看看实际效果。GPT-5 和 Sonnet 4.5 的测试数据表明，缓存后的 Token 响应速度明显更快。
+
+## LLM 架构概览
+
+在深入探讨缓存机制之前，我们需要理解 LLM 的基本工作原理。从本质上讲，LLM 是一个巨大的数学函数，它接收一系列数字作为输入，并产生一个数字作为输出。
+
+这个庞大的操作图可以大致分为四个部分：
+
+1. **Tokenizer（分词器）**
+2. **Embedding（嵌入层）**
+3. **Transformer（变换器）**
+4. **Output（输出层）**
+
+整个推理过程是循环进行的：每次生成一个 Token，然后将其追加到输入中，再进行下一次推理。这意味着每次迭代都需要重新处理整个上下文，这正是 Prompt 缓存要解决的问题。
+
+## Tokenizer：文本到数字的转换
+
+Tokenizer 的工作是将文本转换为 LLM 可以处理的数字序列。以 "Check out ngrok.ai" 为例：
+
+- "Check" → 4383
+- " out" → 842
+- " ng" → 1657
+- "rok" → 17690
+- ".ai" → 75584
+
+最终得到 Token 数组：`[4383, 842, 1657, 17690, 75584]`
+
+**关键点**：相同的文本总是产生相同的 Token 序列。Token 是 LLM 的基本输入输出单位。
+
+## Embedding：为 Token 赋予语义维度
+
+Token 本身只是整数，缺乏语义信息。Embedding 层将每个 Token 转换为高维空间中的一个点（向量）。
+
+例如，一个 3 维的 Embedding 可能是 `[0.1, -0.5, 0.3]`。实际的 LLM 使用数千甚至上万维的 Embedding。
+
+**Embedding 的作用**：
+
+- 编码 Token 的语义含义
+- 编码 Token 在序列中的位置信息
+- 为后续的注意力计算提供基础
+
+## Transformer 与注意力机制
+
+Transformer 是 LLM 的核心，其中最重要的组件是**注意力机制（Attention）**。注意力机制通过以下步骤计算每个 Token 对生成下一个 Token 的重要性：
+
+### 简化的注意力计算流程
+
+```javascript
+// 训练过程中学习的权重矩阵
+const WQ = [...]; // Query 权重
+const WK = [...]; // Key 权重
+const WV = [...]; // Value 权重
+
+function attention(embeddings) {
+    // 1. 计算 Query, Key, Value
+    const Q = embeddings * WQ;
+    const K = embeddings * WK;
+    const V = embeddings * WV;
+
+    // 2. 计算注意力分数
+    const scores = Q * transpose(K);
+
+    // 3. 应用掩码（防止未来 Token 影响当前）
+    const masked = mask(scores);
+
+    // 4. Softmax 归一化为权重
+    const weights = softmax(masked);
+
+    // 5. 加权求和得到新的 Embedding
+    return weights * V;
+}
+```
+
+**关键观察**：在生成第 N 个 Token 时，需要重新计算前 N-1 个 Token 的所有注意力权重。这就是计算浪费的来源。
+
+## Prompt 缓存的核心原理
+
+Prompt 缓存的本质是**KV 缓存（KV Caching）**。通过观察推理过程，我们发现：
+
+1. **重复计算问题**：每次生成新 Token，都要重新计算之前所有 Token 的 K（Key）和 V（Value）矩阵
+2. **不变性**：已处理 Token 的 K 和 V 矩阵在后续迭代中不会改变
+3. **优化方案**：缓存已处理 Token 的 K 和 V，只计算新 Token
+
+### 缓存工作流程
+
+**传统方式（无缓存）**：
+
+```
+输入: ["Mary", "had", "a", "little"]
+计算: 所有 Token 的 K, V → 注意力权重 → 新 Embedding
+```
+
+**使用 KV 缓存**：
+
+```
+初始: ["Mary"] → 计算 K, V → 缓存
+迭代: ["Mary", "had"] → 只计算 "had" 的 K, V → 追加到缓存
+迭代: ["Mary", "had", "a"] → 只计算 "a" 的 K, V → 追加到缓存
+```
+
+**结果**：计算量从 O(n²) 降低到 O(n)，对于长提示效果显著。
+
+## 缓存的实际效果
+
+### 成本降低
+
+- **10 倍 Token 成本降低**：缓存的输入 Token 价格仅为常规 Token 的 1/10
+- **部分匹配支持**：即使只有前缀匹配，也能利用缓存的部分结果
+
+### 延迟减少
+
+- **85% 延迟降低**：对于长提示，首 Token 响应时间大幅减少
+- **一致性提升**：缓存命中时响应时间更加稳定
+
+### 服务商差异
+
+| 特性         | OpenAI   | Anthropic        |
+| ------------ | -------- | ---------------- |
+| **缓存策略** | 自动路由 | 手动指定         |
+| **命中率**   | 约 50%   | 100%（当指定时） |
+| **控制粒度** | 较粗     | 精细             |
+| **适用场景** | 通用场景 | 长上下文应用     |
+
+## 缓存管理细节
+
+### 缓存内容
+
+- **K 矩阵**：Key 矩阵，维度为 `[序列长度 × 注意力头数 × 维度]`
+- **V 矩阵**：Value 矩阵，维度同 K
+
+### 缓存生命周期
+
+- **存储时长**：通常保留 5-10 分钟
+- **失效策略**：基于时间或会话结束
+- **部分匹配**：支持前缀匹配的缓存复用
+
+### 不受影响的参数
+
+以下参数不会影响 Prompt 缓存：
+
+- `temperature`（温度）
+- `top_p`（核采样）
+- `top_k`（Top-K 采样）
+
+这些参数只影响最终的 Token 选择阶段，不影响注意力计算。
+
+## 实际应用建议
+
+### 何时使用 Prompt 缓存
+
+1. **长提示场景**：系统提示、few-shot 示例较多
+2. **重复请求**：相同或相似的查询模式
+3. **流式应用**：需要快速首 Token 响应的场景
+
+### 最佳实践
+
+1. **合理划分缓存边界**：将不变的部分（如系统提示）放在前面
+2. **监控缓存命中率**：优化缓存策略
+3. **选择合适服务商**：根据控制需求选择 OpenAI 或 Anthropic
+
+## 总结
+
+Prompt 缓存通过 KV 缓存技术，避免了推理过程中的重复计算，实现了：
+
+- **10 倍成本降低**
+- **85% 延迟减少**
+- **更好的用户体验**
+
+理解这一机制有助于开发者更好地利用缓存特性，优化 AI 应用的性能和成本。
+
+---
+
+**参考资源**：
+
+- [Build a Large Language Model (From Scratch)](https://www.oreilly.com/library/view/build-a-large/9781633437166/)
+- [Neural Networks: Zero to Hero](https://www.youtube.com/watch?v=VMj-3S1tku0&list=PLAqhIrjkxbuWI23v9cThsA9GvCAUhRvKZ) by Andrej Karpathy
+- [Transformer Explainer](https://poloclub.github.io/transformer-explainer/)
+- [ngrok AI Gateway](https://ngrok.com/docs/ai-gateway/overview)

@@ -1,0 +1,712 @@
+---
+title: '前端性能监控：从 FCP 到 LCP，再到全栈可观测性'
+date: '2026-01-10 17:00:00'
+tags: ['性能监控', 'Web Vitals', '可观测性', '全栈监控', '日志系统']
+draft: false
+summary: '前端三大监控闭环：错误监控捕获异常，行为监控理解用户，性能监控优化体验。再向上延伸，构建包含后端链路的全站可观测体系，让日志、指标、追踪串联起整个系统。'
+series: '可观测性系列'
+step: 5
+---
+
+## 引子：用户说"慢"，但你不知道哪里慢
+
+一个典型的场景：用户反馈"页面加载很慢"，你打开 Chrome DevTools，看到 LCP（最大内容绘制）是 4.2 秒，但不知道这 4.2 秒花在了哪里——是前端渲染慢？接口请求慢？还是数据库查询慢？
+
+更尴尬的是，监控系统显示"一切正常"：
+
+- Sentry：错误率 0.1% ✅
+- 埋点系统：用户行为正常 ✅
+- 业务指标：转化率稳定 ✅
+
+但用户就是觉得慢。**性能监控的意义，就是把"慢"这个主观感受，拆解成可量化、可优化的客观指标。**
+
+今天，我们从前端性能监控出发，串联错误监控、行为监控，最终构建包含后端链路的全站可观测体系。
+
+## 前端三大监控闭环
+
+在深入性能监控之前，先明确前端监控的三大支柱及其关系：
+
+### 1. 错误监控（Sentry）
+
+**核心问题**：系统是否正常工作？
+**关键指标**：错误率、异常类型、影响用户数
+**捕获内容**：JS 异常、Promise 未捕获、资源加载失败、接口错误
+
+### 2. 行为监控（埋点）
+
+**核心问题**：用户在做什么？
+**关键指标**：PV、UV、点击率、转化漏斗
+**捕获内容**：页面访问、按钮点击、表单提交、用户路径
+
+### 3. 性能监控（Web Vitals）
+
+**核心问题**：用户体验如何？
+**关键指标**：FCP、LCP、CLS、FID、INP
+**捕获内容**：加载性能、交互响应、视觉稳定性
+
+### 三者关系
+
+```
+用户访问页面
+    ↓
+性能监控：记录加载时间（LCP = 2.3s）
+    ↓
+行为监控：记录用户点击（搜索按钮 → 商品详情）
+    ↓
+错误监控：捕获异常（接口 500 → Promise 未捕获）
+    ↓
+综合分析：LCP 慢是因为接口超时导致页面空白，用户因此放弃购买
+```
+
+**闭环价值**：性能问题 → 行为流失 → 错误根因 → 优化验证
+
+## 性能监控：核心指标与采集原理
+
+### Web Vitals 核心指标
+
+#### 1. FCP（First Contentful Paint）- 首次内容绘制
+
+**定义**：浏览器首次绘制任何文本、图片（包含背景图）、非空白 canvas 的时间点
+**目标**：< 1.8 秒
+**场景**：用户感知"页面开始加载了"
+
+**采集原理**：
+
+```javascript
+// 使用 PerformanceObserver 监听 paint 事件
+const observer = new PerformanceObserver((list) => {
+  for (const entry of list.getEntries()) {
+    if (entry.name === 'first-contentful-paint') {
+      reportFCP(entry.startTime)
+    }
+  }
+})
+observer.observe({ type: 'paint', buffered: true })
+```
+
+**业务意义**：如果 FCP > 2 秒，用户会觉得页面"卡死"，可能直接关闭。
+
+#### 2. LCP（Largest Contentful Paint）- 最大内容绘制
+
+**定义**：视口内最大元素（通常是图片、大标题）渲染完成的时间
+**目标**：< 2.5 秒
+**场景**：用户感知"主要内容看到了"
+
+**采集原理**：
+
+```javascript
+// 监听 LCP 相关元素加载
+const lcpObserver = new PerformanceObserver((list) => {
+  const entries = list.getEntries()
+  const lastEntry = entries[entries.length - 1]
+  reportLCP(lastEntry.startTime)
+})
+lcpObserver.observe({ type: 'largest-contentful-paint', buffered: true })
+```
+
+**典型问题**：
+
+- 首屏大图未压缩 → LCP 延迟 1 秒以上
+- 接口数据驱动渲染 → 数据返回慢导致 LCP 延迟
+
+#### 3. CLS（Cumulative Layout Shift）- 累积布局偏移
+
+**定义**：页面整个生命周期中，所有意外布局偏移的分数总和
+**目标**：< 0.1
+**场景**：用户阅读时内容突然跳动
+
+**采集原理**：
+
+```javascript
+// 监听布局变化
+const clsObserver = new PerformanceObserver((list) => {
+  for (const entry of list.getEntries()) {
+    if (!entry.hadRecentInput) {
+      // 排除用户操作导致的偏移
+      reportCLS(entry.value)
+    }
+  }
+})
+clsObserver.observe({ type: 'layout-shift', buffered: true })
+```
+
+**典型问题**：
+
+- 图片未设置宽高 → 加载后下方内容下移
+- 动态广告插入 → 页面内容跳动
+
+#### 4. FID（First Input Delay）- 首次输入延迟
+
+**定义**：从用户首次交互（点击、触摸）到浏览器响应的时间
+**目标**：< 100 毫秒
+**场景**：用户点击按钮的响应速度
+
+**采集原理**：
+
+```javascript
+// 监听首次输入事件
+const fidObserver = new PerformanceObserver((list) => {
+  for (const entry of list.getEntries()) {
+    reportFID(entry.processingStart - entry.startTime)
+  }
+})
+fidObserver.observe({ type: 'first-input', buffered: true })
+```
+
+**典型问题**：
+
+- 主线程被长任务阻塞 → 用户点击后无响应
+
+#### 5. INP（Interaction to Next Paint）- 交互到下次绘制
+
+**定义**：所有交互的延迟中，最差的那次（取代 FID）
+**目标**：< 200 毫秒
+**场景**：整体交互流畅度
+
+### 性能数据采集架构
+
+```
+浏览器层（Performance API）
+    ↓
+采集 SDK（封装 Web Vitals 库）
+    ↓
+数据上报（sendBeacon / fetch）
+    ↓
+性能监控平台（计算 P75、P99、趋势）
+    ↓
+告警 & 可视化（Grafana / 自建平台）
+```
+
+**关键设计**：
+
+- **采样率**：生产环境 10-20%，避免数据量过大
+- **分位数计算**：关注 P75/P99，而非平均值
+- **用户分群**：按设备、网络、浏览器分组分析
+
+## 三大监控串联：从现象到根因
+
+### 场景一：电商页面转化率下降
+
+**现象**：埋点显示购买转化率从 15% 降至 10%
+
+**排查过程**：
+
+1. **性能监控**：LCP 从 2.1s 增加到 4.5s
+   - 发现首屏商品图加载变慢
+
+2. **行为监控**：用户在商品详情页的停留时间缩短
+   - 从平均 45 秒降至 20 秒
+
+3. **错误监控**：Sentry 捕获大量图片加载失败
+   - 错误：`net::ERR_CONNECTION_TIMED_OUT`
+
+**根因分析**：
+
+- CDN 节点故障 → 图片加载慢 → LCP 延迟 → 用户失去耐心 → 转化率下降
+
+**验证**：
+
+- 切换 CDN 节点后，LCP 恢复至 2.0s
+- 转化率回升至 14%
+
+### 场景二：搜索功能用户流失
+
+**现象**：搜索结果页跳出率 70%
+
+**排查过程**：
+
+1. **性能监控**：FCP 正常（1.2s），但 CLS = 0.25
+   - 发现搜索结果列表布局严重跳动
+
+2. **行为监控**：用户快速滑动页面后离开
+   - 埋点显示"滚动深度"平均只有 30%
+
+3. **错误监控**：无明显错误
+
+**根因分析**：
+
+- 搜索结果图片未设置宽高 → 加载后下方内容下移 → 用户阅读被打断 → 放弃使用
+
+**验证**：
+
+- 给图片容器设置固定宽高，CLS 降至 0.02
+- 跳出率降至 45%
+
+### 场景三：表单提交失败
+
+**现象**：用户投诉"点击提交没反应"
+
+**排查过程**：
+
+1. **性能监控**：INP = 850ms（远超 200ms 标准）
+   - 发现提交按钮点击后，主线程被阻塞
+
+2. **行为监控**：埋点显示"提交点击"事件，但无"提交成功"
+   - 用户反复点击，导致多次提交
+
+3. **错误监控**：Sentry 捕获"提交防抖重复"警告
+
+**根因分析**：
+
+- 提交逻辑包含同步加密计算 → 阻塞主线程 → 页面无响应 → 用户重复点击 → 表单重复提交
+
+**验证**：
+
+- 将加密计算移至 Web Worker
+- INP 降至 80ms，重复提交问题消失
+
+## 超越前端：全站可观测性体系
+
+前端三大监控解决了"用户端"的问题，但完整的可观测性需要延伸到后端。
+
+### 全栈监控架构
+
+```
+用户浏览器
+    ↓ (trace_id: abc123)
+前端监控 ←→ 性能/行为/错误
+    ↓ (trace_id: abc123)
+API 网关 / 负载均衡
+    ↓ (trace_id: abc123)
+后端服务（Java/Node/Go）
+    ↓ (trace_id: abc123)
+数据库 / 缓存 / 消息队列
+    ↓ (trace_id: abc123)
+日志聚合系统（ELK / Loki）
+```
+
+### 后端链路监控
+
+#### 1. 结构化日志（Logging）
+
+**传统日志**：
+
+```
+2026-01-10 10:00:00 ERROR 用户查询失败
+```
+
+**结构化日志**：
+
+```json
+{
+  "timestamp": "2026-01-10T10:00:00Z",
+  "level": "ERROR",
+  "trace_id": "abc123",
+  "user_id": "u_456",
+  "service": "order-service",
+  "endpoint": "/api/orders",
+  "error": "Database connection timeout",
+  "duration_ms": 3500,
+  "db_query": "SELECT * FROM orders WHERE user_id = ?",
+  "stack_trace": "..."
+}
+```
+
+**价值**：
+
+- 通过 `trace_id` 串联全链路
+- 通过 `user_id` 追踪特定用户行为
+- 通过 `duration_ms` 识别慢查询
+
+#### 2. 指标监控（Metrics）
+
+**关键指标**：
+
+- **吞吐量**：QPS、TPS
+- **错误率**：5xx 比例、异常抛出次数
+- **延迟**：P50/P95/P99 响应时间
+- **资源**：CPU 使用率、内存占用、连接池状态
+
+**采集方式**：
+
+```java
+// Spring Boot + Micrometer
+@Component
+public class OrderMetrics {
+    private final Counter orderCounter;
+    private final Timer orderTimer;
+
+    public OrderMetrics(MeterRegistry registry) {
+        orderCounter = Counter.builder("orders.total")
+            .register(registry);
+        orderTimer = Timer.builder("orders.duration")
+            .register(registry);
+    }
+
+    public void createOrder() {
+        orderTimer.record(() -> {
+            // 业务逻辑
+            orderCounter.increment();
+        });
+    }
+}
+```
+
+#### 3. 分布式追踪（Tracing）
+
+**场景**：用户下单慢，需要定位是前端、网关、订单服务、还是数据库的问题
+
+**追踪链路**：
+
+```
+[浏览器] 200ms (FCP)
+  ↓ (fetch /api/orders)
+[网关] 50ms (路由转发)
+  ↓ (RPC 调用)
+[订单服务] 800ms (业务逻辑)
+  ├─ [用户服务] 200ms (查询用户信息)
+  ├─ [库存服务] 300ms (扣减库存)
+  └─ [数据库] 250ms (INSERT order)
+  ↓
+[浏览器] 总计 1050ms
+```
+
+**实现**：
+
+```java
+// OpenTelemetry 自动注入 trace_id
+@GetMapping("/api/orders")
+public ResponseEntity<Order> createOrder(@RequestBody OrderRequest request) {
+    // trace_id 自动传递到所有下游调用
+    Span.current().setAttribute("user.id", request.getUserId());
+
+    // 业务逻辑
+    Order order = orderService.create(request);
+
+    return ResponseEntity.ok(order);
+}
+```
+
+### 日志系统设计
+
+#### 1. 日志分层
+
+```
+应用层日志（业务语义）
+  ↓
+框架层日志（HTTP、RPC、DB）
+  ↓
+系统层日志（GC、线程、内存）
+```
+
+#### 2. 日志分级与采样
+
+| 级别  | 场景       | 采样率 | 存储策略 |
+| ----- | ---------- | ------ | -------- |
+| ERROR | 异常、失败 | 100%   | 永久保留 |
+| WARN  | 降级、限流 | 100%   | 30 天    |
+| INFO  | 关键业务   | 100%   | 7 天     |
+| DEBUG | 调试信息   | 10%    | 1 天     |
+| TRACE | 详细追踪   | 1%     | 不存储   |
+
+#### 3. 日志聚合与分析
+
+**ELK 架构**：
+
+```
+Filebeat (日志采集)
+  ↓
+Logstash (日志清洗、结构化)
+  ↓
+Elasticsearch (索引存储)
+  ↓
+Kibana (查询、可视化)
+```
+
+**查询示例**：
+
+```
+// 查找特定用户的所有日志
+trace_id: "abc123" OR user_id: "u_456"
+
+// 查找慢查询
+duration_ms > 1000 AND service: "order-service"
+
+// 查找错误趋势
+level: "ERROR" AND timestamp: [now-1h TO now]
+```
+
+### 全栈可观测性闭环
+
+#### 1. 问题发现
+
+**前端监控**：LCP > 4s，用户流失率上升
+**后端监控**：订单服务 P99 延迟 2s，数据库慢查询
+
+#### 2. 根因定位
+
+**Trace 链路**：
+
+```
+用户点击下单
+  ↓ 50ms
+前端发送请求
+  ↓ 100ms
+网关接收
+  ↓ 1800ms ← 问题在这里
+订单服务处理
+  ├─ 200ms 查询用户
+  ├─ 300ms 扣库存
+  └─ 1300ms 等待数据库 ← 慢查询
+```
+
+**日志分析**：
+
+```json
+{
+  "trace_id": "abc123",
+  "sql": "SELECT * FROM orders WHERE user_id = ? AND status = 'pending'",
+  "execution_time": 1300,
+  "rows_examined": 1000000,
+  "rows_sent": 10,
+  "warning": "Missing index on user_id and status"
+}
+```
+
+#### 3. 优化验证
+
+**优化前**：
+
+- LCP: 4.2s
+- 转化率: 8%
+
+**优化后**：
+
+- 数据库添加联合索引
+- LCP: 2.1s
+- 转化率: 14%
+
+## 实战：构建全栈可观测性体系
+
+### 第一步：前端埋点（性能 + 行为 + 错误）
+
+```javascript
+// 1. 性能监控（Web Vitals）
+import { onLCP, onFID, onCLS } from 'web-vitals'
+
+onLCP((metric) => {
+  sendReport('performance', {
+    metric: 'LCP',
+    value: metric.value,
+    page: window.location.pathname,
+  })
+})
+
+// 2. 行为监控（埋点）
+function trackEvent(event, params) {
+  sendReport('behavior', {
+    event,
+    params,
+    userId: getUserId(),
+    timestamp: Date.now(),
+  })
+}
+
+// 3. 错误监控（Sentry）
+Sentry.init({
+  dsn: 'your-dsn',
+  beforeSend(event) {
+    // 关联性能 trace_id
+    event.trace_id = getTraceId()
+    return event
+  },
+})
+```
+
+### 第二步：后端日志与追踪
+
+```java
+// 1. 结构化日志
+log.info("Order created", kv("trace_id", traceId),
+                     kv("user_id", userId),
+                     kv("order_id", orderId),
+                     kv("duration_ms", duration));
+
+// 2. 指标采集
+Timer.Sample sample = Timer.start();
+// 业务逻辑
+sample.stop(Timer.builder("order.create").register(registry));
+
+// 3. 分布式追踪
+@WithSpan("create-order")
+public Order createOrder(OrderRequest request) {
+    // 自动传递 trace_id
+    return orderRepository.save(request);
+}
+```
+
+### 第三步：日志聚合与告警
+
+**日志采集**：
+
+```yaml
+# Filebeat 配置
+filebeat.inputs:
+  - type: log
+    paths:
+      - /var/log/app/*.log
+    fields:
+      service: order-service
+    json.keys_under_root: true
+
+output.elasticsearch:
+  hosts: ['elasticsearch:9200']
+  index: 'app-logs-%{+yyyy.MM.dd}'
+```
+
+**告警规则**：
+
+```yaml
+# Prometheus 告警
+groups:
+  - name: order-service
+    rules:
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: '订单服务错误率超过 5%'
+```
+
+### 第四步：可视化大盘
+
+**前端监控面板**：
+
+- LCP/P95/P99 趋势图
+- 不同网络类型（4G/WiFi）性能对比
+- 不同页面性能排名
+
+**后端监控面板**：
+
+- 服务调用拓扑图
+- 接口 P95/P99 延迟
+- 数据库慢查询 Top 10
+- 错误率趋势
+
+**全链路监控面板**：
+
+- 用户端到端耗时分解
+- Trace ID 查询链路详情
+- 日志关联跳转
+
+## 最佳实践与踩坑指南
+
+### 1. 性能监控采样率
+
+**问题**：全量采集性能数据会导致存储成本爆炸
+
+**方案**：
+
+```javascript
+// 按用户分群采样
+const samplingRate = {
+  normal: 0.1, // 10% 普通用户
+  vip: 0.5, // 50% VIP 用户
+  error: 1.0, // 100% 出错用户
+}
+
+const rate = getUserType() === 'vip' ? 0.5 : 0.1
+if (Math.random() < rate) {
+  sendPerformanceData(data)
+}
+```
+
+### 2. 日志脱敏
+
+**问题**：日志中包含敏感信息（密码、手机号、身份证）
+
+**方案**：
+
+```java
+public class SensitiveDataFilter extends LogbackFilter {
+    @Override
+    public FilterReply decide(ILoggingEvent event) {
+        String message = event.getFormattedMessage();
+        // 脱敏手机号
+        message = message.replaceAll("(\\d{3})\\d{4}(\\d{4})", "$1****$2");
+        // 脱敏身份证
+        message = message.replaceAll("(\\d{4})\\d{10}(\\d{4})", "$1**********$2");
+        return FilterReply.ACCEPT;
+    }
+}
+```
+
+### 3. Trace ID 传递
+
+**问题**：跨服务调用时 trace_id 丢失
+
+**方案**：
+
+```java
+// HTTP Header 传递
+@GetMapping("/api/orders")
+public ResponseEntity<Order> createOrder(@RequestHeader("X-Trace-Id") String traceId) {
+    MDC.put("trace_id", traceId);
+    // 传递到下游
+    HttpHeaders headers = new HttpHeaders();
+    headers.set("X-Trace-Id", traceId);
+    // ...
+}
+
+// RPC 框架自动传递（如 gRPC、Dubbo）
+```
+
+### 4. 成本控制
+
+**存储成本**：
+
+- 热数据（最近 7 天）：Elasticsearch
+- 温数据（7-30 天）：压缩存储
+- 冷数据（30 天+）：归档到 S3
+
+**计算成本**：
+
+- 聚合计算：离线批处理
+- 实时查询：按需计算
+- 采样存储：只存储聚合指标
+
+## 总结：可观测性的价值层级
+
+### Level 1: 被动响应
+
+- 用户投诉 → 开发排查 → 修复问题
+- **特点**：救火模式，效率低
+
+### Level 2: 主动监控
+
+- 异常告警 → 快速定位 → 修复问题
+- **特点**：有监控体系，但数据孤立
+
+### Level 3: 全链路追踪
+
+- Trace 串联 → 根因分析 → 系统优化
+- **特点**：前后端打通，问题定位快
+
+### Level 4: 数据驱动
+
+- 性能趋势 → 用户行为 → 业务影响 → 预测优化
+- **特点**：主动发现瓶颈，预防问题
+
+### Level 5: 智能运维
+
+- AI 分析 → 自动告警 → 自愈系统
+- **特点**：系统自优化，人工干预少
+
+**我们目前处于 Level 3 向 Level 4 演进的阶段**：通过前端三大监控闭环 + 后端链路追踪，构建完整的可观测性体系，让数据真正驱动产品优化和系统改进。
+
+> 📖 **本系列推荐阅读**
+>
+> - [系统视角的观测 - 用 Next.js + Java + PostgreSQL 拆解一个 Web 应用](/zh/blog/system-observation)
+> - [利用 Chrome DevTools Network Initiator 定位请求源头](/zh/blog/chrome-devtools-initiator)
+> - [使用 Sentry 做前端异常监控 - 被劫持的浏览器 API](/zh/blog/sentry-monitoring)
+> - [前端埋点：从工具人到数据驱动者](/zh/blog/behavior-tracking)
+
+---
+
+**参考资料**
+
+- [Web Vitals 官方文档](https://web.dev/vitals/)
+- [Google: Measuring Web Vitals](https://web.dev/learn/vitals/)
+- [OpenTelemetry 官方文档](https://opentelemetry.io/)

@@ -1,18 +1,47 @@
 ---
-title: '日志的系统观：从 Next.js 到 Spring Boot 的实践笔记'
+title: '日志的系统观：从 Next.js 到 Spring Boot 的全栈实践'
 date: '2025-10-17 20:00:00'
-tags: ['日志', '可观测性', '系统设计', 'Next.js', 'Spring Boot']
+tags: ['日志', '可观测性', '全栈监控', '分布式追踪', 'ELK']
 draft: false
-summary: '一次磁盘告警引出的系统思考：如何在前端、全栈和后端场景中构建可观测的日志体系。'
+summary: '前端三大监控闭环后，如何通过统一的日志体系将后端链路纳入可观测性体系？从 Next.js 到 Spring Boot，构建跨语言的 trace_id 传递和结构化日志系统。'
+series: '可观测性系列'
+step: 6
 ---
 
-## 引子：海滩上的磁盘告警
+## 引子：从前端监控到后端链路
+
+在[上一篇文章](/zh/blog/performance-monitoring)中，我们讨论了前端三大监控闭环：错误监控、行为监控、性能监控。但当 LCP（最大内容绘制）延迟达到 4 秒时，我们发现问题往往不在前端——可能是数据库慢查询、消息队列堆积，或者下游服务超时。
+
+这时候，日志系统就成了串联全栈可观测性的关键。但日志不是简单的 `console.log`，而是需要：
+
+1. **结构化**：机器可读，支持聚合分析
+2. **全链路**：通过 `trace_id` 串联前端到数据库
+3. **可采样**：控制成本，保留关键信息
+4. **可告警**：基于日志指标触发自动化响应
 
 国庆假期，我躺在海边的躺椅上。手机突然连续震动，公司的运维群里刷出几条「磁盘空间不足」的告警。问题的源头并不复杂：某个服务的日志没控住体积，几天里把节点撑满了。同事临时删除旧文件，服务恢复，群里回复「忘了挂自动清理脚本」。事情到此为止，但我脑子里留下了两个问题：日志到底记录了些什么？为什么这点基础设施还是靠人工兜底？
 
 日志看似不起眼，却承载系统运行时的全部记忆。把它当垃圾桶，磁盘会被撑爆；把它当调试信息，真正出事故时你又会发现线索全丢了。要把这件“小事”做好，需要系统思维：先保证数据结构正确，再谈实现细节。
 
-## 日志的系统三问
+## 日志在可观测性体系中的位置
+
+可观测性三大支柱（Metrics、Logs、Traces）的关系：
+
+```
+Metrics（指标）← 告警触发（如：错误率 > 5%）
+  ↓
+Logs（日志）← 根因分析（如：具体哪个 SQL 慢）
+  ↓
+Traces（追踪）← 链路定位（如：请求经过了哪些服务）
+```
+
+**日志的独特价值**：
+
+- **Metrics 太粗**：告诉你"错了 100 次"，但不知道"为什么错"
+- **Traces 太窄**：告诉你"哪里慢"，但不知道"慢的具体原因"
+- **Logs 太细**：需要结构化和采样，否则信息过载
+
+### 日志的系统三问
 
 1. **这是个真问题还是臆想出来的？** 日志不是为了满足「写一点心安」的幻觉，而是要回答线上真实存在的问题：谁、在何时、在哪个链路节点出错。
 2. **有更简单的方法吗？** 数据结构先行，少依赖条件判断。把关键信息打包进统一上下文，就不用在每个函数里反复拼字段。
@@ -22,39 +51,56 @@ summary: '一次磁盘告警引出的系统思考：如何在前端、全栈和�
 
 好日志的第一性原理是：所有信息都是事件。事件包含三个最小字段：
 
-| 字段      | 说明                                  |
-| --------- | ------------------------------------- |
-| `event`   | 事件名，直接描述发生了什么            |
-| `context` | 上下文，至少包含 `trace_id` 和主体 ID |
-| `payload` | 结构化数据，描述状态或参数            |
+| 字段      | 说明                                  | 示例值                                  |
+| --------- | ------------------------------------- | --------------------------------------- |
+| `event`   | 事件名，直接描述发生了什么            | `order.create.failed`                   |
+| `context` | 上下文，至少包含 `trace_id` 和主体 ID | `trace_id: abc123, user_id: 456`        |
+| `payload` | 结构化数据，描述状态或参数            | `{duration_ms: 3500, error: "timeout"}` |
 
 把事件写成 JSON，就不必在查询时再拆字符串。
 
 ```json
 {
+  "timestamp": "2026-01-10T10:00:00Z",
+  "level": "ERROR",
   "event": "order.create.failed",
-  "trace_id": "04b5...",
+  "trace_id": "abc123",
   "user_id": 102938,
   "order_id": "SO20241017001",
+  "service": "order-service",
+  "duration_ms": 3500,
   "error": {
     "type": "NullPointerException",
-    "message": "customer is null"
+    "message": "customer is null",
+    "stack_trace": "..."
   }
 }
 ```
 
-## 前端（Next.js 客户端）：让每条日志能追溯到用户
+**与前端监控的关联**：
 
-浏览器日志的常见误区有两个：滥用 `console.log` 和在出错时只记录字符串。前端应该像服务端一样严肃。
+- `trace_id`：与前端 Performance API 采集的 `trace_id` 保持一致
+- `duration_ms`：对应前端的 LCP、TTFB 等指标
+- `user_id`：与埋点系统的用户 ID 关联
 
-- **统一入口**：封装日志函数，只暴露 `info`、`warn`、`error`。
-- **自动挂载上下文**：启动时生成 `session_id`，在每条日志里自动附带。
-- **及时上报**：用户刷新页面之前，把结构化事件推送到收集端点。
-- **控制开销**：高频行为做采样，避免重型对象的 `JSON.stringify`。
-- **只透传、不生成 trace**：从后端响应头里拿到 `traceparent` 或 `request-id`，在后续调用中原样带回，绝不尝试在浏览器侧自建 ID。
+## 前端（Next.js 客户端）：与性能监控联动
+
+浏览器日志的常见误区有两个：滥用 `console.log` 和在出错时只记录字符串。前端应该像服务端一样严肃，并与性能监控联动。
+
+### 设计原则
+
+1. **统一入口**：封装日志函数，只暴露 `info`、`warn`、`error`
+2. **自动挂载上下文**：启动时生成 `session_id`，在每条日志里自动附带
+3. **及时上报**：用户刷新页面之前，把结构化事件推送到收集端点
+4. **控制开销**：高频行为做采样，避免重型对象的 `JSON.stringify`
+5. **与性能数据关联**：日志自动携带当前页面的性能指标
+
+### 实现示例
 
 ```tsx
 // lib/client-logger.ts
+import { getLCP, getFID, getCLS } from 'web-vitals'
+
 type LogEvent = {
   level: 'info' | 'warn' | 'error'
   event: string
@@ -63,18 +109,39 @@ type LogEvent = {
 }
 
 const sessionId = crypto.randomUUID()
+let currentPerformance = { lcp: 0, fid: 0, cls: 0 }
+
+// 采集性能指标
+getLCP((metric) => {
+  currentPerformance.lcp = metric.value
+})
+getFID((metric) => {
+  currentPerformance.fid = metric.value
+})
+getCLS((metric) => {
+  currentPerformance.cls = metric.value
+})
 
 const emit = async (entry: LogEvent) => {
+  // 采样：只上报 10% 的 info 日志
+  if (entry.level === 'info' && Math.random() > 0.1) return
+
   const body = {
     event: entry.event,
     level: entry.level,
     session_id: sessionId,
     payload: entry.payload ?? {},
+    performance: currentPerformance, // 关联性能指标
     error: entry.error
-      ? { name: entry.error.name, message: entry.error.message, stack: entry.error.stack }
+      ? {
+          name: entry.error.name,
+          message: entry.error.message,
+          stack: entry.error.stack,
+        }
       : undefined,
     timestamp: new Date().toISOString(),
   }
+
   navigator.sendBeacon('/api/logs', JSON.stringify(body))
 }
 
@@ -88,11 +155,27 @@ export const clientLogger = {
 }
 ```
 
+### 与性能监控的联动场景
+
+**场景**：用户点击"购买"按钮后无反应
+
+```
+性能监控：INP = 850ms（主线程阻塞）
+  ↓
+行为监控：记录"purchase.click"事件，但无"purchase.success"
+  ↓
+日志系统：记录"purchase.timeout"，携带当前性能数据
+  ↓
+综合分析：主线程被加密计算阻塞，导致用户重复点击
+```
+
 Next.js 端使用 App Router，可以在 `layout.tsx` 里注入 `ErrorBoundary`，捕获渲染错误并调用 `clientLogger.error`。同时监听 `window.addEventListener('unhandledrejection', ...)` 把 Promise 异常纳入同一通道。
 
 ## Next.js 全栈：Server Actions 和 Route Handlers 的共识
 
 服务端是链路的第一个可信节点。遵循 W3C Trace Context 的做法是：在入口处生成 `trace_id`，仅当上游（例如 API 网关或边缘节点）已经携带合法的 `traceparent` 时才复用，绝不依赖浏览器自己造 ID。Next.js 作为 BFF（Backend For Frontend），需要在 Route Handler 中完成创建与透传。
+
+### Trace ID 传递机制
 
 ```ts
 // app/api/checkout/route.ts
@@ -150,7 +233,35 @@ export async function POST(req: Request) {
 }
 ```
 
-这里的关键是 `runWithContext`：底层通过 `AsyncLocalStorage` 或 OpenTelemetry 的 `context` API，把 `trace_id`、`span_id` 等信息绑定到当前异步调用栈，后续日志自动携带。这样写，控制器层的 `try/catch` 不需要额外判断，也不会在重试时漏掉上下文。
+这里的关键是 `runWithContext`：底层通过 `AsyncLocalStorage` 或 OpenTelemetry 的 `context` API，把 `trace_id`、`span_id` 等信息绑定到当前异步调用栈，后续日志自动携带。
+
+### 与前端监控的完整链路
+
+```
+浏览器 Performance API
+  ↓ trace_id: abc123
+前端日志（LCP=2.1s, FID=80ms）
+  ↓ trace_id: abc123 (通过 fetch header 传递)
+Next.js Route Handler
+  ↓ trace_id: abc123
+后端服务（Java/Node/Go）
+  ↓ trace_id: abc123
+数据库查询
+  ↓
+日志聚合系统（ELK）
+```
+
+**查询示例**：
+
+```
+trace_id: "abc123"
+→ 前端：LCP 2.1s，用户点击购买
+→ Next.js：checkout.request.received
+→ Java 服务：order.create.success，耗时 500ms
+→ 数据库：慢查询 300ms（缺少索引）
+```
+
+**根因定位**：数据库缺少索引导致订单创建慢，前端 LCP 延迟，用户流失。
 
 ### Edge Runtime 与缓存
 

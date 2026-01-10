@@ -1,0 +1,120 @@
+---
+title: Claude Code 逆向工程：如何实现非官方模型接入
+date: 2026-01-10
+tags: [Claude Code, 逆向工程, AI, Open Source]
+summary: 深入了解如何通过逆向工程发现 Claude Code 的环境变量配置，实现使用任意兼容模型替代 Anthropic 官方服务。
+---
+
+## 项目背景
+
+在 Claude Code 发布的第二天（2025-02-25），社区中有开发者尝试并完成了对该项目的逆向分析。当时要使用 Claude Code，需要注册一个 Anthropic 账号，然后申请 waitlist，等待通过后才能使用。但由于 Anthropic 对中国区用户存在访问限制，正常手段可能无法使用。
+
+在探索过程中，发现了几个关键信息：
+
+1. **Claude Code 使用 npm 进行安装**，因此其很可能使用 Node.js 进行开发
+2. **Node.js 调试手段众多**，可以简单使用 `console.log` 获取信息，也可以使用 `--inspect` 将其接入 `Chrome Devtools`，甚至可以使用 `d8` 去调试某些加密混淆的代码
+
+对于希望在没有 Anthropic 账号的情况下使用 `Claude Code` 的开发者，并不需要获得完整的源代码，只需要将 `Claude Code` 请求 Anthropic 模型时将其转发到自定义的接口即可。
+
+## 逆向过程
+
+### 第一步：定位安装路径
+
+首先安装 `Claude Code`：
+
+```bash
+npm install -g @anthropic-ai/claude-code
+```
+
+安装后该项目被放在了 `~/.nvm/versions/node/v20.10.0/lib/node_modules/@anthropic-ai/claude-code` 中。因为使用了 `nvm` 作为 node 版本控制器，当前使用 `node-v20.10.0`，所以该路径会因人而异。
+
+### 第二步：分析包结构
+
+找到项目路径之后可通过 `package.json` 分析包入口：
+
+```json
+{
+  "name": "@anthropic-ai/claude-code",
+  "version": "1.0.24",
+  "main": "sdk.mjs",
+  "types": "sdk.d.ts",
+  "bin": {
+    "claude": "cli.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "type": "module"
+}
+```
+
+其中 `"claude": "cli.js"` 就是我们要找的入口。打开 `cli.js`，发现代码被压缩混淆过了。没关系，借助 IDE 的格式化功能可以重新格式化，让代码变得稍微好看一点。
+
+### 第三步：使用 Chrome Devtools 进行调试
+
+现在，你可以通过阅读部分代码来了解 `Claude Code` 的内容工具原理与提示词。也可以使用 `Chrome Devtools` 来进行断点调试，使用以下命令启动 `Claude Code`:
+
+```bash
+NODE_OPTIONS="--inspect-brk=9229" claude
+```
+
+该命令会以调试模式启动 `Claude Code`，并将调试的端口设置为 `9229`。这时候通过 Chrome 访问 `chrome://inspect/` 即可看到当前的 `Claude Code` 进程，点击 `inspect` 即可进行调试。
+
+### 关键发现
+
+通过搜索关键字符 `api.anthropic.com`，很容易能找到 `Claude Code` 用来发请求的地方。根据上下文的查看，很容易发现这里的 `baseURL` 可以通过环境变量 `ANTHROPIC_BASE_URL` 进行覆盖，`apiKey` 和 `authToken` 也同理。
+
+## 核心结论
+
+通过逆向工程分析，获得了以下关键信息：
+
+1. **可以使用环境变量覆盖 `Claude Code` 的 `BaseURL` 和 `apiKey` 的配置**
+2. **`Claude Code` 使用 Anthropic API 的规范**
+
+这意味着开发者只需要：
+
+1. 实现一个服务用来将 OpenAI API 的规范转换成 Anthropic API 格式
+2. 启动 `Claude Code` 之前写入环境变量将 `baseURL` 指向到该服务
+
+## claude-code-router 的诞生
+
+基于以上发现，社区中诞生了 [claude-code-router](https://github.com/musistudio/claude-code-router) 项目。该项目使用 Express.js 作为 HTTP 服务，实现 `/v1/messages` 端点，使用 middlewares 处理请求/响应的格式转换以及请求重写功能。
+
+### 技术演进
+
+在 2 月份由于 DeepSeek 全系列模型对 Function Call 的支持不佳，导致无法直接使用 DeepSeek 模型，因此开发者选择了 `qwen-max` 模型，各方面表现良好。但是 `qwen-max` 不支持 KV Cache，意味着要消耗大量的 token，却无法获取 Claude Code 原生的体验。
+
+后来尝试了 Router 模式，即使用一个小模型对任务进行分发，一共分为四个模型：`router`、`tool`、`think` 和 `coder`。所有的请求先经过一个免费的小模型，由小模型去判断应该是进行思考还是编码还是调用工具，再进行任务的分发。但实践下来发现免费的小模型不足以很好地完成任务的分发，再加上整个 Agent 的设计存在缺陷。
+
+直到 5 月底，Claude Code 正式推出，此时 DeepSeek 全系列模型（R1 于 05-28）均支持 Function Call，开发者开始重新设计该项目。在与 AI 的协作编程中，修复了之前的请求和响应转换问题。这次直接使用 `DeepSeek-v3` 模型，它的表现超出预期：能完成绝大多数工具调用，还支持用步骤规划解决任务，最关键的是 DeepSeek 的价格不到 Claude Sonnet 3.5 的十分之一。
+
+### 当前架构
+
+现在的 Router 模式包含四个模型：
+
+| 模型角色        | 用途                               | 推荐模型    |
+| --------------- | ---------------------------------- | ----------- |
+| **默认模型**    | 最终兜底和日常处理                 | DeepSeek-v3 |
+| **background**  | 后台小任务（如俳句生成和对话摘要） | 本地 ollama |
+| **think**       | 思考或 Plan Mode                   | DeepSeek-R1 |
+| **longContext** | 长上下文场景（>32K tokens）        | DeepSeek-v3 |
+
+## 实践应用
+
+如果读者也想实现类似的功能，推荐阅读社区中整理的 [Claude Code 接入非官方模型教程](/zh/blog/cs/ai-series/agentic-development/claude-code-setup)，该教程提供了一种更简单的方式来实现模型接入，无需部署额外的转发服务。
+
+而 claude-code-router 这种方案的价值在于：
+
+1. **保持更新**：在不修改 Claude Code 源码的情况下完成请求的转发和修改，可以随时获得 Anthropic 的更新
+2. **自由选择模型**：使用自己的模型，自定义自己的提示词
+3. **成本优化**：使用性价比更高的模型来驱动 Claude Code
+
+## 写在最后
+
+该项目是在 Anthropic 封禁中国区用户的背景下，使用 Claude Code 并且达到成本和性能平衡的一种解决方案。如果可以的话，官方的 Max Plan 体验最佳。
+
+这一探索过程也带来了许多关于 Node.js 逆向工程、API 协议转换、以及 Agent 系统设计的收获。有时候，限制反而是最好的老师。
+
+---
+
+**参考项目**：[musistudio/claude-code-router](https://github.com/musistudio/claude-code-router)

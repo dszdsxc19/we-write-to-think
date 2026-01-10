@@ -1,0 +1,197 @@
+---
+title: 如何将 Claude Code 打造成领域专用编程 Agent
+date: 2025-01-10
+tags: [AI, Claude Code, LangGraph, Agent, Context Engineering]
+series: AI 系列笔记
+step: 12
+summary: LangChain 团队通过 A/B 测试发现：高质量的 Claude.md + 按需文档工具 > 单纯文档接入；上下文工程是打造领域 Agent 的关键。
+draft: false
+---
+
+## 核心结论
+
+**"高质量、浓缩过的领域知识" + "按需查文档的工具"效果最好**
+
+LangChain 团队通过系统性的 A/B 测试发现：
+
+- ❌ 单纯把原始文档（整份 llms.txt/网页全文）塞给 Claude Code，提升不大，还容易把上下文窗口塞满
+- ✅ 结构化的 CLAUDE.md 指南更稳定地提升任务完成度与代码质量
+- 🏆 **Claude + Claude.md > Claude + MCP 文档工具**
+- 🚀 **Claude + Claude.md + MCP 整体最强**
+
+关键原因：仅接入文档工具时，Claude Code 并不会像预期那样频繁、深入地调用工具；而在 Claude.md 里加入"导航指引/参考链接/常见坑"后，模型更愿意按需继续查文档，把工具用起来。
+
+---
+
+## 实验：4 种配置的 A/B 测试
+
+文章本质上是在做**"上下文工程（context engineering）的 A/B 测试**，目标是把 Claude Code 变成"更懂 LangGraph/LangChain 的 coding agent"。
+
+### 1. Claude Vanilla（原生）
+
+开箱即用的 Claude Code，没有任何修改。
+
+### 2. Claude + MCP（文档工具）
+
+- **MCPDoc 服务器**：开源 MCP 服务器，提供两个工具
+  - `list_doc_sources`：列出可用的 llms.txt 文档源
+  - `fetch_docs`：读取特定 llms.txt 或其链接页面内容
+- **要点**：不是让模型自己上网乱翻，而是提供受控、可追踪的文档抓取入口，且带域名白名单等安全限制
+- **结果**：比原生好 ~10 个百分点，但工具调用频率不如预期
+
+### 3. Claude + Claude.md（领域指南）
+
+- **内容结构**：
+  - 项目结构（必须先检索现有代码再新建文件）
+  - 导出规范、部署实践
+  - 常用 primitives 与模式（如 `create_react_agent`、supervisor、swarm/handoff）
+  - 流式传输、人机协作（human-in-the-loop/interrupt）等模型易错点
+  - **常见坑与反模式**：错误的 `interrupt()` 用法、状态更新模式、类型假设错误等
+  - 每节末尾放"去哪里查"的参考链接，驱动模型按需调用工具深入阅读
+- **加载方式**：项目级 `./CLAUDE.md` 或 `./.claude/CLAUDE.md`，支持拆成 `.claude/rules/*.md` 模块化规则
+- **结果**：比 MCP 工具单独使用效果更好
+
+### 4. Claude + Claude.md + MCP（两者结合）
+
+- **Claude.md 提供**：导航、概念、原则
+- **MCP 提供**：深入文档的能力
+- **结果**：整体最强，工具调用更频繁和深入
+
+---
+
+## 评测框架：不只看能不能跑
+
+他们做了一个任务级评测 harness，衡量代码质量而不只是功能：
+
+### 1. Smoke Tests（冒烟测试）
+
+验证基本功能：
+
+- 能编译
+- 能调用 `.invoke()` 方法
+- 输出结构正确（如 `AIMessage` 对象）
+
+### 2. Task Requirement Tests（任务特定测试）
+
+验证任务特定要求：
+
+- 配置文件是否正确
+- API 调用是否正确（web search、LLM providers）
+- 并行搜索、特定功能实现
+
+### 3. LLM-as-a-Judge（代码质量评估）
+
+对照专家参考实现 + rubric，按严重程度扣分：
+
+- **Objective Checks**：客观事实（是否有特定节点、图结构是否正确、模块分离等）
+- **Subjective Assessment**：主观评估（设计选择、抽象使用、代码组织）
+- **扣分机制**：
+  ```
+  Score = Score_max - Σ_s (n_s × p_s)
+  ```
+  其中 `n_s` 是严重程度为 `s` 的违规数量，`p_s` 是该严重程度的惩罚权重
+
+---
+
+## 为什么 Claude.md 比 MCP 单独使用更好？
+
+### MCP 工具调用不如预期
+
+Trace 分析显示：
+
+- 即使任务需要浏览 2-3 个链接页面，Claude 通常只调用 MCP 一次就停了
+- 只在主页面停止，得到的是高层描述，不是实现细节
+
+### Claude.md + MCP 更有效
+
+- Claude.md 每节末尾的参考 URL 引导模型去查更多细节
+- 观察到模型更频繁地调用 MCP 工具，甚至在需要时触发 web search
+- Claude.md 提供了"什么时候查文档"的触发条件
+
+---
+
+## 关键发现
+
+### 1. Context Overload（上下文过载）
+
+- 倾倒大型 llms.txt 文件会挤满上下文窗口
+- 导致性能差、成本高
+- MCP 服务器实现很naive，完全抓取页面内容，一次调用就会触发上下文窗口警告
+
+### 2. Claude.md 回报最高
+
+- 比搭建 MCP 服务器更容易设置
+- 运行更便宜
+- 在任务 #2 上，Claude + Claude.md 比 Claude + MCP 便宜约 2.5 倍
+- 是定制 Claude Code 的最佳起点
+
+### 3. 写好指令很重要
+
+- Claude.md（或 Agents.md）应该突出：
+  - 核心概念
+  - 独特功能
+  - 常用 primitives
+- 手动检查失败的运行，找到反复出现的坑，添加指导
+- 例如：LangGraph 与 Streamlit 的 async 任务集成、调试开发服务器启动步骤
+
+### 4. Claude + Claude.md + MCP 胜出
+
+- 虽然 Claude.md 每个 token 的回报最高
+- 但最强结果来自与 MCP 服务器的结合
+- 指南提供概念定位，文档帮助深入研究
+
+---
+
+## 复用到自己领域的最短路径
+
+### 1. 先写 CLAUDE.md（优先级最高）
+
+只写"从零开始最常用、最易错、最关键"的 20% 信息：
+
+- ✅ 推荐范式
+- ✅ 必须遵守的项目约束
+- ✅ 反模式清单
+- ✅ 调试步骤
+
+### 2. 把文档做成可按需读取
+
+- 维护 llms.txt（或等价的索引）指向核心文档页
+- 用 MCPDoc 这类工具暴露 `list_doc_sources`/`fetch_docs`
+- 避免一次性灌全文导致上下文爆炸
+
+### 3. 在 CLAUDE.md 里教模型"什么时候、怎么查文档"
+
+给"触发条件 + 链接入口 + 最小查询策略"：
+
+- 这一步会显著提升工具调用频率与深度
+
+### 4. 用小型评测集迭代
+
+- 收集 3-5 个最典型的任务
+- 做自动化测试 + 代码质量 rubric
+- 每次失败就把"失败模式"沉淀进 CLAUDE.md/rules
+
+---
+
+## 更深层的思考
+
+### 上下文管理的重要性
+
+模型能力越来越强，所以 Claude.md 的重要性越来越凸显：
+
+- **从 workflow 到模型自己思考**：不是硬编码流程，而是给模型足够的上下文让它自己推理
+- **编排（orchestration）**：Claude.md 本质上是一种"知识编排"，把分散的文档、规则、最佳实践组织成一个模型可理解的上下文
+
+### 编码 Agent 的未来
+
+- **领域专用 > 通用**：通用编码 agent 在热门库上表现好，但在定制/内部 API 上表现差
+- **知识工程 > 提示工程**：不是写更好的 prompt，而是构建更好的知识结构（Claude.md + 评测 + 迭代）
+- **人机协作**：Claude.md 是人类专家知识的结晶，让模型能够继承专家经验
+
+---
+
+## 参考文献
+
+- [How to turn Claude Code into a domain specific coding agent - LangChain Blog](https://blog.langchain.com/how-to-turn-claude-code-into-a-domain-specific-coding-agent/)
+- [MCPDoc - Open Source MCP Server for Documentation](https://github.com/langchain-ai/mcp-docs)
+- [llms.txt - Standard for LLM-friendly documentation](https://llmstxt.org/)

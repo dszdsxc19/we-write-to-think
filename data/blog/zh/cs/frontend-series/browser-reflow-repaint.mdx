@@ -1,0 +1,562 @@
+---
+title: '浏览器的回流与重绘：原理与优化指南'
+date: 2026-01-11
+tags: ['浏览器', '渲染', '性能优化', 'CSS', 'DOM']
+summary: '回流与重绘是浏览器渲染页面时的两个核心概念，理解它们对于前端性能优化至关重要。本文从实际场景切入，详细解析浏览器渲染原理，以及如何避免性能损耗。'
+authors: ['default']
+layout: PostLayout
+---
+
+## 引言：为什么你的页面卡住了？
+
+你有没有遇到过这样的情况：修改了一个元素的样式，页面突然变得卡顿？或者在滚动页面时出现了明显的掉帧？这些问题往往与浏览器的**回流（Reflow）**和**重绘（Repaint）**密切相关。
+
+在日常开发中，我们频繁地操作 DOM 和样式，但很少有人真正理解这些操作背后的渲染机制。掌握回流与重绘的原理，不仅能帮助我们写出更高性能的代码，还能在面试中展现出扎实的技术功底。
+
+本文将从**场景切入**和**原理深入**两个维度，全面解析浏览器的回流与重绘机制。
+
+---
+
+## 一、从场景切入：什么时候会发生回流与重绘？
+
+### 1.1 回流场景：布局发生变化的时刻
+
+回流是指当 Render Tree 中部分或全部元素的尺寸、结构、或位置发生改变时，浏览器重新渲染部分或全部文档的过程。
+
+**典型的回流场景包括：**
+
+```javascript
+// 场景1：元素尺寸改变
+element.style.width = '200px'
+element.style.height = '100px'
+
+// 场景2：位置发生改变
+element.style.transform = 'translateX(50px)'
+
+// 场景3：添加或删除可见 DOM 元素
+document.body.appendChild(newElement)
+element.remove()
+
+// 场景4：字体大小改变
+element.style.fontSize = '18px'
+
+// 场景5：浏览器窗口大小改变
+window.addEventListener('resize', () => {
+  /* 触发回流 */
+})
+
+// 场景6：激活 CSS 伪类
+// <div class="container"></div>
+// .container:hover { height: 200px; }
+```
+
+**会导致回流的常见 CSS 属性：**
+
+| 属性类别 | 具体属性                                         |
+| -------- | ------------------------------------------------ |
+| 尺寸相关 | `width`、`height`、`margin`、`padding`、`border` |
+| 定位相关 | `top`、`right`、`bottom`、`left`、`position`     |
+| 布局相关 | `display`、`float`、`flex`、`grid`               |
+| 字体相关 | `font-size`、`font-weight`、`line-height`        |
+
+### 1.2 重绘场景：样式改变但布局不变
+
+重绘是指当页面中元素样式的改变并不影响它在文档流中的位置时，浏览器将新样式赋予元素并重新绘制的过程。
+
+**典型的重绘场景：**
+
+```javascript
+// 场景1：颜色改变
+element.style.color = '#ff0000'
+element.style.backgroundColor = 'blue'
+
+// 场景2：可见性改变
+element.style.visibility = 'hidden'
+
+// 场景3：边框样式
+element.style.borderStyle = 'dashed'
+element.style.borderColor = 'green'
+
+// 场景4：阴影和轮廓
+element.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)'
+element.style.outline = '1px solid red'
+```
+
+**只会触发重绘的属性：**
+
+- `color`、`background-color`、`background-image`
+- `visibility`、`opacity`、`outline`
+- `border-radius`、`box-shadow`、`text-decoration`
+
+### 1.3 一个直观的对比示例
+
+```html
+<!-- 回流示例：改变宽度会影响周围元素的位置 -->
+<div id="box1" style="width: 100px; background: red;">Box 1</div>
+<div id="box2" style="background: blue;">Box 2</div>
+
+<script>
+  // 改变 box1 的宽度，box2 的位置也会受到影响 -> 回流
+  document.getElementById('box1').style.width = '200px'
+</script>
+
+<!-- 重绘示例：只改变颜色，不影响布局 -->
+<div id="box3" style="background: red;">Box 3</div>
+
+<script>
+  // 只改变背景色，位置不变 -> 重绘
+  document.getElementById('box3').style.backgroundColor = 'blue'
+</script>
+```
+
+---
+
+## 二、从原理深入：浏览器是如何渲染页面的？
+
+### 2.1 浏览器渲染流程概述
+
+在理解回流与重绘之前，我们需要先了解浏览器的渲染流程：
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    浏览器渲染流程                            │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│   HTML              CSSOM              JavaScript           │
+│    │                  │                   │                  │
+│    ▼                  ▼                   ▼                  │
+│  ┌─────┐          ┌─────┐                                   │
+│  │ DOM │ ───────► │CSSOM│                                   │
+│  └─────┘          └─────┘                                   │
+│       │               │                                      │
+│       └───────┬───────┘                                      │
+│               ▼                                              │
+│         ┌──────────┐                                         │
+│         │Render Tree│                                        │
+│         └──────────┘                                         │
+│               │                                              │
+│               ▼                                              │
+│         ┌──────────┐                                         │
+│         │  Layout  │ ◄── 计算位置和尺寸                      │
+│         └──────────┘                                         │
+│               │                                              │
+│               ▼                                              │
+│         ┌──────────┐                                         │
+│         │  Paint   │ ◄── 绘制像素                            │
+│         └──────────┘                                         │
+│               │                                              │
+│               ▼                                              │
+│         ┌──────────┐                                         │
+│         │ Composite│ ◄── 图层合成                            │
+│         └──────────┘                                         │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**各阶段详解：**
+
+1. **HTML 解析**：浏览器将 HTML 文本解析成 DOM 树
+2. **CSS 解析**：浏览器将 CSS 样式解析成 CSSOM 树
+3. **Render Tree 构建**：DOM 与 CSSOM 合并生成渲染树
+4. **Layout（布局）**：计算每个节点的几何信息（位置、大小）
+5. **Paint（绘制）**：将渲染树转换为屏幕上的像素
+6. **Composite（合成）**：将不同图层合并显示
+
+### 2.2 什么是 Render Tree？
+
+Render Tree（渲染树）是 DOM 树和 CSSOM 树合并后的产物，它只包含**可见节点**：
+
+```javascript
+// 不会出现在 Render Tree 中的元素：
+// 1. <head> 及其子元素（不可见）
+// 2. 设置了 display: none 的元素
+// 3. 设置了 visibility: hidden 的元素（但 visibility: hidden 会在 Render Tree 中占位）
+```
+
+```html
+<head>
+  <style>
+    /* 不会出现在 Render Tree */
+  </style>
+</head>
+<body>
+  <header style="display: none;">
+    <!-- 不会出现在 Render Tree -->
+    <h1>Title</h1>
+  </header>
+
+  <main>
+    <div class="visible">我会出现在 Render Tree</div>
+    <div class="hidden" style="visibility: hidden;">我会占位</div>
+    <div class="gone" style="display: none;">我不会出现</div>
+  </main>
+</body>
+```
+
+### 2.3 回流的本质：布局计算
+
+回流的核心是**Layout 阶段的重执行**。当元素的几何属性发生变化时，浏览器需要：
+
+1. 重新计算受影响元素的几何信息
+2. 向上查找父元素，重新计算父元素的尺寸
+3. 向下查找子元素，可能影响子元素的位置
+4. 考虑同级元素的位置调整
+
+```javascript
+// 回流的影响范围示例
+;<div id="parent">
+  <div id="child">Child</div>
+</div>
+
+// 当修改 parent 的宽度时：
+document.getElementById('parent').style.width = '500px'
+
+// 影响链：
+// parent -> parent 的尺寸变化
+//    ├── child -> 可能需要换行
+//    └── parent 的父元素 -> 可能需要调整
+```
+
+**关键点**：现代浏览器使用**流式布局（Flow Based Layout）**，对 Render Tree 的计算通常只需要遍历一次，但 `table` 及其内部元素除外——它们可能需要多次计算，通常要花 3 倍于同等元素的时间。
+
+### 2.4 重绘的本质：重新绘制像素
+
+重绘发生在 **Paint 阶段**，当元素的视觉样式改变但不影响几何信息时：
+
+```javascript
+// 这种改变只会触发重绘，不会触发回流
+element.style.backgroundColor = 'red'
+element.style.color = 'white'
+element.style.border = '1px solid black'
+```
+
+重绘的开销通常比回流小，因为它不需要重新计算布局。
+
+### 2.5 合成层：性能优化的关键
+
+除了 Layout 和 Paint，还有一个重要的 **Composite（合成）** 阶段：
+
+```css
+/* 会创建独立合成层的属性 */
+.element {
+  transform: translateX(100px);
+  opacity: 0.5;
+  will-change: transform;
+  filter: blur(5px);
+}
+
+/* 动画应该应用在这些属性上 */
+@keyframes slide {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100px);
+  }
+}
+
+.animated-element {
+  animation: slide 1s ease-in-out;
+}
+```
+
+**为什么合成层能提升性能？**
+
+- 合成层的渲染不影响的 Layout 和 Paint
+- GPU 可以独立处理合成层的动画
+- 主线程释放出来处理其他任务
+
+---
+
+## 三、回流与重绘的关系
+
+### 3.1 核心结论
+
+**一句话总结：回流必将引起重绘，重绘不一定会引起回流。**
+
+```
+┌────────────────────────────────────────────────────────────┐
+│                    回流与重绘的关系                         │
+├────────────────────────────────────────────────────────────┤
+│                                                            │
+│   几何属性改变 ──► 回流 ──► 必然 ──► 重绘                  │
+│        │                                                    │
+│        ▼                                                    │
+│   样式属性改变 ──► 重绘 ──► 不一定 ──► 回流                │
+│                                                            │
+│   例如：                                                    │
+│   • width 改变 ──► 回流 + 重绘                             │
+│   • color 改变 ──► 只有重绘                                │
+│                                                            │
+└────────────────────────────────────────────────────────────┘
+```
+
+### 3.2 性能影响对比
+
+| 操作类型 | 影响范围             | 性能开销 | 发生频率 |
+| -------- | -------------------- | -------- | -------- |
+| 回流     | 大（可能影响整棵树） | 高       | 较低     |
+| 重绘     | 中（只影响元素本身） | 中       | 较高     |
+
+---
+
+## 四、浏览器的优化机制：批量处理
+
+### 4.1 渲染队列
+
+现代浏览器会对频繁的回流或重绘操作进行优化：
+
+```javascript
+// 浏览器会将这些操作放入队列，批量处理
+element.style.width = '100px'
+element.style.height = '100px'
+element.style.margin = '20px'
+
+// 浏览器会合并为一次回流 + 重绘，而不是三次
+```
+
+### 4.2 强制同步布局
+
+但是，当我们**读取**某些属性时，浏览器会**立刻清空队列**，确保返回最精确的值：
+
+```javascript
+// 这些属性会触发强制同步布局（Layout Thrashing）
+const width = element.offsetWidth // 触发回流
+const height = element.clientHeight // 触发回流
+const scrollTop = window.scrollY // 触发回流
+
+// 错误示例：读取和写入交替，触发多次回流
+for (let i = 0; i < 10; i++) {
+  element.style.width = baseWidth + i + 'px'
+  const width = element.offsetWidth // 每次循环都触发回流！
+}
+```
+
+**会触发强制同步布局的属性：**
+
+```javascript
+// 布局相关
+element.offsetWidth
+element.offsetHeight
+element.offsetTop
+element.offsetLeft
+element.clientWidth
+element.clientHeight
+element.clientTop
+element.clientLeft
+element.scrollWidth
+element.scrollHeight
+element.scrollTop
+element.scrollLeft
+
+// 方法调用
+element.getBoundingClientRect()
+window.getComputedStyle(element)
+element.scrollIntoView()
+window.scrollTo(x, y)
+```
+
+### 4.3 正确做法：读写分离
+
+```javascript
+// 错误做法：读写交替
+function badExample() {
+  for (let i = 0; i < 10; i++) {
+    element.style.width = baseWidth + i + 'px'
+    console.log(element.offsetWidth) // 触发10次回流！
+  }
+}
+
+// 正确做法：先读后写
+function goodExample() {
+  // 先读取所有需要的信息
+  const width = element.offsetWidth
+
+  // 再进行写入操作
+  for (let i = 0; i < 10; i++) {
+    element.style.width = width + i + 'px'
+  }
+  // 只触发一次回流（在循环结束后统一处理）
+}
+```
+
+---
+
+## 五、性能优化策略
+
+### 5.1 CSS 层面的优化
+
+```css
+/* ❌ 避免使用 table 布局 */
+.table-layout {
+  display: table;
+  width: 100%;
+}
+
+/* ✅ 使用 flex 或 grid 替代 */
+
+/* ❌ 避免多层内联样式 */
+.element {
+  font-size: 14px;
+  color: #333;
+  /* 尽量合并为 class */
+}
+
+/* ✅ 将动画应用到绝对定位元素 */
+@keyframes slide {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100px);
+  }
+}
+
+.animated-element {
+  position: absolute;
+  animation: slide 0.3s ease;
+}
+
+/* ✅ 使用 CSS 变量批量更新 */
+:root {
+  --primary-color: #3498db;
+  --spacing: 16px;
+}
+
+.button {
+  color: var(--primary-color);
+  padding: var(--spacing);
+}
+```
+
+### 5.2 JavaScript 层面的优化
+
+```javascript
+// ❌ 错误做法：频繁操作 DOM
+function badApproach() {
+  for (let i = 0; i < 100; i++) {
+    const div = document.createElement('div')
+    div.style.width = '100px'
+    document.body.appendChild(div) // 每次都触发回流
+  }
+}
+
+// ✅ 正确做法1：使用 DocumentFragment
+function goodApproach1() {
+  const fragment = document.createDocumentFragment()
+  for (let i = 0; i < 100; i++) {
+    const div = document.createElement('div')
+    div.style.width = '100px'
+    fragment.appendChild(div)
+  }
+  document.body.appendChild(fragment) // 只触发一次
+}
+
+// ✅ 正确做法2：先隐藏，操作后再显示
+function goodApproach2() {
+  element.style.display = 'none'
+  // 进行多次 DOM 操作
+  element.style.width = '200px'
+  element.style.height = '100px'
+  element.style.backgroundColor = 'red'
+  // 显示回来
+  element.style.display = 'block'
+}
+
+// ✅ 正确做法3：使用 class 批量更新样式
+function goodApproach3() {
+  element.classList.add('new-layout')
+  // 而不是逐个设置 style 属性
+}
+
+// ✅ 正确做法4：缓存布局属性
+function goodApproach4() {
+  // 缓存值避免重复读取
+  const width = element.offsetWidth
+  const height = element.offsetHeight
+
+  // 使用缓存的值进行计算
+  const newSize = width * 2 + height
+}
+```
+
+### 5.3 使用 CSS 硬件加速
+
+```css
+/* 使用 transform 和 opacity 触发 GPU 加速 */
+.transform-animation {
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+/* 使用 will-change 提示浏览器优化 */
+.will-change-element {
+  will-change: transform, opacity;
+}
+```
+
+### 5.4 使用 requestAnimationFrame
+
+```javascript
+// ❌ 在定时器中操作 DOM
+setInterval(() => {
+  element.style.top = counter++ + 'px'
+}, 16)
+
+// ✅ 使用 requestAnimationFrame
+function animate() {
+  element.style.top = counter++ + 'px'
+  requestAnimationFrame(animate)
+}
+requestAnimationFrame(animate)
+```
+
+---
+
+## 六、实战：识别性能问题
+
+### 6.1 使用 Chrome DevTools
+
+1. **Performance 面板**：录制操作，查看回流与重绘
+2. **Rendering 面板**：开启 "Paint flashing" 和 "Layout Shift Regions"
+3. **Layers 面板**：查看合成层
+
+```javascript
+// 在控制台中查看合成层数量
+console.log(document.querySelectorAll('*').length)
+```
+
+### 6.2 使用 Lighthouse
+
+```bash
+# 运行 Lighthouse 审计
+# 关注 "Total Blocking Time" 和 "Cumulative Layout Shift"
+```
+
+---
+
+## 总结
+
+| 概念               | 触发条件                 | 影响范围             | 性能开销 |
+| ------------------ | ------------------------ | -------------------- | -------- |
+| **回流 (Reflow)**  | 元素尺寸、位置、结构改变 | 大（可能影响整棵树） | 高       |
+| **重绘 (Repaint)** | 视觉样式改变，不影响布局 | 中（只影响元素本身） | 中       |
+
+**核心优化原则：**
+
+1. **减少回流**：避免频繁读取布局属性，使用 CSS 变量和 class
+2. **读写分离**：先批量读取，再批量写入
+3. **使用合成层**：将动画应用到 transform 和 opacity
+4. **善用缓存**：缓存布局属性，避免重复计算
+5. **选择合适的布局**：避免使用 table，优先使用 flex/grid
+
+理解回流与重绘的原理，不仅能帮助我们写出更高性能的代码，还能让我们在面对复杂的页面性能问题时游刃有余。希望本文能帮助你在前端性能优化的道路上更进一步。
+
+---
+
+## 参考资料
+
+- [浏览器的重绘与回流（Repaint、Reflow）](https://juejin.cn/post/6844904005097750542)
+- [介绍回流与重绘（Reflow & Repaint），以及如何进行优化?](https://juejin.cn/post/7064077572132323365)
+- [MDN: CSS Triggers](https://developer.mozilla.org/en-US/docs/Web/Performance/CSS_JavaScript_animation_performance)
