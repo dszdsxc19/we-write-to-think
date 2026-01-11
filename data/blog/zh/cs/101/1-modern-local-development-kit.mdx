@@ -8,9 +8,131 @@ series: 'AI时代的现代化本地开发环境搭建'
 step: 0
 ---
 
+> **AI 元数据：环境信息提取方法**
+
+本节为 AI 助手提供快速提取当前开发环境信息的方法，用于环境更新和迁移。
+
+### 提取命令清单
+
+```bash
+# ===== Chrome 扩展列表 =====
+ls ~/Library/Application\ Support/Google/Chrome/Default/Extensions/
+
+# ===== Chrome 书签文件位置 =====
+ls ~/Library/Application\ Support/Google/Chrome/Default/Bookmarks
+
+# ===== Homebrew 已安装的 Cask 应用 =====
+brew list --cask
+
+# ===== Homebrew 已安装的 Formula 包 =====
+brew list --formula
+
+# ===== App Store 已安装的应用（需要 mas CLI）=====
+mas list
+
+# ===== VSCode 已安装的扩展 =====
+code --list-extensions --show-versions
+
+# ===== VSCode 用户设置 =====
+cat ~/Library/Application\ Support/Code/User/settings.json
+# 或
+cat ~/.config/Code/User/settings.json
+
+# ===== VSCode 快捷键配置 =====
+cat ~/Library/Application\ Support/Code/User/keybindings.json
+# 或
+cat ~/.config/Code/User/keybindings.json
+
+# ===== Zsh 配置 =====
+cat ~/.zshrc
+
+# ===== Git 配置 =====
+git config --global --list
+
+# ===== Docker 信息 =====
+docker --version
+docker ps
+
+# ===== Node.js 版本 =====
+node --version
+fnm list
+
+# ===== Python 版本 =====
+python --version
+
+# ===== 系统信息 =====
+system_profiler SPSoftwareDataType
+fastfetch
+# 或
+neofetch
+```
+
+### 使用说明
+
+**AI 助手读取环境时，应该按以下顺序执行：**
+
+1. **Chrome 扩展**：执行 `ls` 命令，然后通过 Chrome Web Store API 或 Web Search 识别每个扩展
+2. **Homebrew 软件**：直接读取 `brew list --cask` 和 `brew list --formula` 输出
+3. **VSCode 配置**：读取扩展列表、settings.json、keybindings.json
+4. **终端配置**：读取 `~/.zshrc`
+5. **Git 配置**：执行 `git config --global --list`
+6. **其他工具**：根据需要选择性读取
+
+**注意事项**：
+
+- 扩展 ID 需要通过 Chrome Web Store API 或 Web Search 识别
+- 某些路径可能因系统版本或用户配置不同而变化
+- App Store 应用需要先安装 `mas` CLI 工具
+- 建议将提取的信息保存为 Markdown 或 JSON 格式，便于版本控制
+
+**AI 读取模板**：
+
+```markdown
+## 当前环境信息（更新日期：YYYY-MM-DD）
+
+### Chrome 扩展
+
+| 扩展 ID | 扩展名称 | 说明 |
+
+### Homebrew Cask 应用
+
+- [应用名](链接)
+
+### Homebrew Formula 包
+
+- [包名](链接)
+
+### VSCode 扩展
+
+- [扩展名](链接)
+
+### VSCode 配置
+
+\`\`\`json
+{settings.json 内容}
+\`\`\`
+
+### 其他配置
+
+- Zsh 配置
+- Git 配置
+- 等...
+```
+
+---
+
 拿到一台新 Mac 后，如何一步步配置成你的主力开发/工作机器？本文按安装优先级排序，带你快速搭建完美工作环境。
 
-> **工具哲学**：约定大于配置，现代化，速度快。选择工具的标准：默认行为符合直觉，积极维护，性能优先，原生应用优先，隐私保护。
+> **工具哲学**：约定大于配置，现代化，速度快，AI 为中心。
+
+在 AI 时代，工具选择的核心原则：
+
+1. **AI 为中心**：所有工具优先选择 AI 原生集成或支持 AI 辅助的工具
+2. **零配置优先**：复杂配置通过 AI 助手自动完成，无需手动折腾
+3. **现代化工具**：放弃老旧工具，选择积极维护、性能优先的新工具
+4. **默认行为符合直觉**：工具开箱即用，不需要阅读长文档
+5. **原生应用优先**：性能和集成体验更佳
+6. **隐私保护**：本地数据优先，减少云服务依赖
 
 ---
 
@@ -148,6 +270,114 @@ brew install --cask claude-code
 
 参考：[Claude Code 配置指南](cs/ai-series/agentic-development/claude-code-setup)
 
+> **推荐**：安装 Claude Code 后，建议继续安装 [OpenCode](#05-opencode--oh-my-opencode---ai-驱动的开发环境) 以获得完整的 AI 驱动开发体验。
+
+### 0.5 OpenCode & oh-my-opencode - AI 驱动的开发环境
+
+#### 为什么选择 OpenCode？
+
+OpenCode 是一个以 AI 为中心的现代化开发环境，核心理念：**让 AI 帮你处理复杂配置，你专注于思考和创造**。
+
+**核心优势**：
+
+- **AI 驱动的任务编排**：自动规划、执行、验证开发任务，无需手动分步操作
+- **多智能体协作**：探索、规划、编程、审查等专用智能体协同工作
+- **开箱即用**：预配置最佳实践，零配置即可使用
+- **持续学习**：从你的工作习惯中学习，不断优化建议
+- **跨平台一致**：本地、云端、容器环境无缝切换
+
+#### oh-my-opencode 配置系统
+
+oh-my-opencode 是 OpenCode 的配置管理工具，核心理念：**配置即代码，AI 自动化管理**。
+
+**核心特性**：
+
+1. **自动配置同步**：通过 AI 自动适配不同环境的配置差异
+2. **配置即版本控制**：所有配置纳入 Git 管理，可追溯、可回滚
+3. **智能配置推荐**：根据项目类型自动推荐最佳配置组合
+4. **零配置迁移**：新设备通过命令一键恢复完整环境
+5. **配置冲突解决**：AI 自动识别并解决配置冲突
+
+**安装与配置**：
+
+```bash
+# 安装 OpenCode CLI
+curl -fsSL https://get.opencode.ai/install.sh | sh
+
+# 初始化配置（AI 自动检测环境）
+opencode init
+
+# 同步配置（AI 自动处理冲突）
+opencode sync
+
+# 查看配置状态
+opencode status
+
+# 快速恢复环境
+opencode restore
+```
+
+**使用示例**：
+
+```bash
+# AI 自动配置项目环境
+opencode config --ai
+
+# AI 自动修复配置错误
+opencode fix
+
+# AI 优化配置性能
+opencode optimize
+```
+
+#### AI 为中心的工作流
+
+**传统工作流**：
+
+1. 搜索配置文档 → 阅读长篇文档 → 手动修改配置 → 测试验证 → 重复调试
+
+**AI 工作流**：
+
+1. 告诉 AI 需求 → AI 自动生成配置 → AI 验证配置 → 完成
+
+**对比**：
+
+| 场景         | 传统方式            | AI 方式       |
+| ------------ | ------------------- | ------------- |
+| 配置新工具   | 阅读文档 30 分钟    | AI 1 分钟完成 |
+| 环境迁移     | 手动复制配置 2 小时 | AI 5 分钟恢复 |
+| 配置冲突解决 | 搜索调试 1 小时     | AI 自动解决   |
+| 性能优化     | 手动调优持续试错    | AI 自动优化   |
+
+#### OpenCode vs 传统工具
+
+| 维度         | 传统工具         | OpenCode          |
+| ------------ | ---------------- | ----------------- |
+| 配置复杂度   | 高（需手动配置） | 低（AI 自动配置） |
+| 学习曲线     | 陡峭             | 平缓              |
+| 任务编排     | 手动分步执行     | AI 自动编排       |
+| 多智能体协作 | 无               | 内置多智能体系统  |
+| 配置迁移     | 困难             | 一键恢复          |
+| 持续优化     | 无               | AI 持续学习优化   |
+| 适用场景     | 熟悉工具的老用户 | 追求效率的开发者  |
+
+#### 推荐使用场景
+
+- **新项目启动**：AI 自动配置最佳实践环境
+- **环境迁移**：一键恢复完整开发环境
+- **配置优化**：AI 自动优化性能和可用性
+- **团队协作**：共享 AI 优化的配置模板
+- **复杂任务**：多智能体协同完成复杂开发任务
+
+#### 注意事项
+
+1. **隐私安全**：本地配置优先，AI 只分析配置本身，不上传代码
+2. **配置备份**：每次 AI 操作前自动备份，可随时回滚
+3. **版本兼容**：AI 自动识别版本兼容性，避免配置冲突
+4. **学习曲线**：初次使用建议跟随 AI 引导完成配置
+
+> **核心理念**：在 AI 时代，你的时间应该花在思考和创造上，而不是阅读文档和调试配置。OpenCode 让 AI 成为你的技术管家，你专注于真正的价值创造。
+
 ---
 
 ## 第一阶段：效率工具
@@ -188,6 +418,27 @@ brew install --cask shottr
 
 功能全面的截图工具，支持滚动截图、标注、贴图。
 
+### 1.3 终端增强
+
+```bash
+brew install --cask alacritty ghostty iterm2
+```
+
+- **Alacritty**：GPU 加速的终端模拟器，极速启动
+- **Ghostty**：现代终端，支持多标签页、分屏
+- **iTerm2**：功能最丰富的 macOS 终端，高度可定制
+
+### 1.4 窗口管理
+
+```bash
+brew install --cask alt-tab hiddenbar monitorcontrol mos
+```
+
+- **Alt-Tab**：Windows 风格的窗口切换器
+- **HiddenBar**：隐藏菜单栏图标，保持整洁
+- **MonitorControl**：外接显示器亮度和音量控制
+- **Mos**：鼠标滚轮反向滚动和速度调节
+
 ---
 
 ## 第二阶段：系统工具
@@ -217,18 +468,20 @@ brew install tw93/tap/mole
 日常沟通协作工具。
 
 ```bash
-brew install --cask wechat qq dingtalk telegram discord whatsapp zoom tencent-meeting
+brew install --cask wechat qq dingtalk telegram discord whatsapp zoom tencent-meeting tencent-lemon skype
 ```
 
-| 软件            | 用途     |
-| --------------- | -------- |
-| 微信            | 即时通讯 |
-| QQ              | 即时通讯 |
-| 钉钉            | 办公通讯 |
-| Telegram        | 加密通讯 |
-| Discord         | 社区交流 |
-| WhatsApp        | 即时通讯 |
-| Zoom / 腾讯会议 | 视频会议 |
+| 软件            | 用途           |
+| --------------- | -------------- |
+| 微信            | 即时通讯       |
+| QQ              | 即时通讯       |
+| 钉钉            | 办公通讯       |
+| Telegram        | 加密通讯       |
+| Discord         | 社区交流       |
+| WhatsApp        | 即时通讯       |
+| Zoom / 腾讯会议 | 视频会议       |
+| 腾讯柠檬        | 腾讯会议云录制 |
+| Skype           | 视频通讯       |
 
 ---
 
@@ -245,18 +498,23 @@ brew install --cask iina
 ### 4.2 视频录制
 
 ```bash
-brew install --cask obs
+brew install --cask obs kap
 ```
 
-免费开源直播录制软件，支持推流、录屏、虚拟摄像头。
+- **OBS**：免费开源直播录制软件，支持推流、录屏、虚拟摄像头
+- **Kap**：轻量级屏幕录制，支持 GIF 导出
 
-### 4.3 视频转码
+### 4.3 视频转码与编辑
 
 ```bash
-brew install --cask handbrake
+brew install --cask handbrake nx-studio videofusion
 ```
 
-免费开源视频转码工具，支持几乎所有格式。
+| 工具            | 用途             |
+| --------------- | ---------------- |
+| **Handbrake**   | 开源视频转码工具 |
+| **NX Studio**   | Next.js 开发工具 |
+| **Videofusion** | 视频融合工具     |
 
 ### 4.4 视频下载
 
@@ -287,29 +545,45 @@ yt-dlp -x --audio-format mp3 "URL"
 yt-dlp --write-subs --sub-lang zh "URL"
 ```
 
-### 4.5 图片查看
+### 4.5 PDF 阅读
 
 ```bash
-brew install --cask pixea
+brew install --cask skim qlmarkdown
 ```
 
-免费图片查看器，支持 EXIF 信息显示。
+| 工具           | 用途          |
+| -------------- | ------------- |
+| **Skim**       | PDF 阅读器    |
+| **QLMarkdown** | Markdown 预览 |
 
-### 4.6 PDF 阅读
+### 4.7 流程图设计
 
 ```bash
-brew install --cask skim
+brew install --cask drawio
 ```
 
-免费 PDF 阅读器，专注阅读体验，支持批注。
+免费的流程图和 UML 图设计工具。
+
+### 4.8 数学工具
+
+```bash
+brew install --cask geogebra
+```
+
+几何、代数、微积分可视化工具。
 
 ---
 
 ## 第五阶段：设计工具
 
 ```bash
-brew install --cask figma
+brew install --cask figma canva
 ```
+
+| 工具      | 用途         |
+| --------- | ------------ |
+| **Figma** | 主流设计工具 |
+| **Canva** | 在线设计平台 |
 
 ---
 
@@ -369,35 +643,40 @@ eval "$(atuin init zsh)"
 
 ### 6.3 核心 CLI 工具
 
-| 工具        | 用途                         |
-| ----------- | ---------------------------- |
-| **bat**     | cat 替代，带语法高亮和行号   |
-| **eza**     | ls 替代，支持 Git 状态和图标 |
-| **fd**      | find 替代，速度快 10-100 倍  |
-| **ripgrep** | grep 替代，极速搜索          |
-| **fzf**     | 模糊搜索，快速定位文件       |
-| **jq**      | JSON 处理和格式化            |
-| **jc**      | 将命令输出转为 JSON          |
-| **btop**    | top 替代，美观的进程监控     |
-| **duf**     | du/df 替代，直观显示磁盘使用 |
-| **ncdu**    | 交互式磁盘清理               |
-| **httpie**  | HTTP 客户端，比 curl 更简单  |
-| **dog**     | DNS 查询，比 dig 更直观      |
+| 工具         | 用途                         |
+| ------------ | ---------------------------- |
+| **bat**      | cat 替代，带语法高亮和行号   |
+| **eza**      | ls 替代，支持 Git 状态和图标 |
+| **fd**       | find 替代，速度快 10-100 倍  |
+| **ripgrep**  | grep 替代，极速搜索          |
+| **fzf**      | 模糊搜索，快速定位文件       |
+| **jq**       | JSON 处理和格式化            |
+| **jc**       | 将命令输出转为 JSON          |
+| **btop**     | top 替代，美观的进程监控     |
+| **duf**      | du/df 替代，直观显示磁盘使用 |
+| **ncdu**     | 交互式磁盘清理               |
+| **httpie**   | HTTP 客户端，比 curl 更简单  |
+| **dog**      | DNS 查询，比 dig 更直观      |
+| **tree**     | 树形目录显示                 |
+| **progress** | 进度显示，监控命令执行进度   |
+| **thefuck**  | 命令纠错，自动修正错误命令   |
 
 ```bash
-brew install bat eza fd ripgrep fzf zoxide jq jc btop duf ncdu httpie dog
+brew install bat eza fd ripgrep fzf zoxide jq jc btop duf ncdu httpie dog tree progress thefuck
 ```
 
 ### 6.4 版本管理工具
 
 ```bash
-brew install fnm asdf
+brew install fnm asdf deno miniconda
 ```
 
-| 工具     | 用途                              |
-| -------- | --------------------------------- |
-| **fnm**  | Node.js 版本管理，比 nvm 快       |
-| **asdf** | 多语言版本管理（Python、Ruby 等） |
+| 工具          | 用途                              |
+| ------------- | --------------------------------- |
+| **fnm**       | Node.js 版本管理，比 nvm 快       |
+| **asdf**      | 多语言版本管理（Python、Ruby 等） |
+| **deno**      | 现代化 JS/TS 运行时               |
+| **miniconda** | Python 包管理和虚拟环境           |
 
 ### 6.5 Git 工具
 
@@ -575,14 +854,15 @@ curl http://localhost:11434/api/generate -d '{
 ### 6.8 数据库 CLI
 
 ```bash
-brew install pgcli litecli mycli
+brew install pgcli litecli mycli mole
 ```
 
-| 工具        | 用途                           |
-| ----------- | ------------------------------ |
-| **pgcli**   | PostgreSQL CLI，自动补全和高亮 |
-| **litecli** | SQLite CLI                     |
-| **mycli**   | MySQL CLI                      |
+| 工具        | 用途                                    |
+| ----------- | --------------------------------------- |
+| **pgcli**   | PostgreSQL CLI，自动补全和高亮          |
+| **litecli** | SQLite CLI                              |
+| **mycli**   | MySQL CLI                               |
+| **mole**    | SQLite CLI for MySQL、PostgreSQL、Redis |
 
 ### 6.9 数据库 GUI 工具
 
@@ -609,13 +889,46 @@ brew install --cask tinyrdm
 - **MongoDB Compass**：MongoDB 官方 GUI，免费开源，可视化文档查询、聚合管道、索引管理
 - **tinyRDM**：现代化 Redis GUI，性能优异，界面美观，支持键值浏览、SSH 隧道、批量操作
 
-### 6.10 编辑器
+### 6.10 编辑器和 IDE
+
+#### 现代终端编辑器
 
 ```bash
-brew install helix
+brew install helix neovim sublime-text
 ```
 
-现代编辑器，模态编辑（Vim 风格），开箱即用。
+| 工具             | 说明                           |
+| ---------------- | ------------------------------ |
+| **helix**        | 模态编辑（Vim 风格），开箱即用 |
+| **neovim**       | 现代化 Vim，插件生态丰富       |
+| **sublime-text** | 轻量级文本编辑器               |
+
+#### AI 编辑器
+
+```bash
+brew install --cask cursor
+```
+
+**Cursor**：AI 驱动的代码编辑器，内置 AI 助手，理解整个代码库。
+
+#### JetBrains IDE
+
+```bash
+brew install --cask intellij-idea webstorm
+```
+
+| 工具              | 用途                 |
+| ----------------- | -------------------- |
+| **IntelliJ IDEA** | Java/Kotlin 开发 IDE |
+| **WebStorm**      | Web 开发 IDE         |
+
+#### VS Code
+
+```bash
+brew install --cask visual-studio-code
+```
+
+微软官方编辑器，插件生态最丰富，支持几乎所有编程语言。
 
 ### 6.11 开发辅助工具
 
@@ -624,16 +937,59 @@ brew install helix
 brew install noti terminal-notifier
 
 # 系统信息
-brew install fastfetch
+brew install fastfetch neofetch
 
 # 进度显示
 brew install pv progress
 
-# 任务管理
+# 任务和时间管理
 brew install task timewarrior
 
 # 配置管理
 brew install chezmoi
+
+# Aider - AI 编程助手
+brew install aider
+
+# Docker Desktop（可选，OrbStack 是推荐方案）
+# brew install --cask docker-desktop
+```
+
+### 6.12 API 测试工具
+
+```bash
+brew install --cask postman yaak bruno
+```
+
+| 工具        | 用途                 |
+| ----------- | -------------------- |
+| **Postman** | API 测试工具（主流） |
+| **Yaak**    | 现代 API 测试工具    |
+| **Bruno**   | 开源 API 客户端      |
+
+### 6.13 其他开发工具
+
+```bash
+# Git GUI
+brew install --cask sourcetree
+
+# Hosts 管理
+brew install --cask switchhosts
+
+# 笔记工具
+brew install --cask obsidian folo paper
+
+# RSS 阅读器
+brew install --cask netnewswire
+
+# 办公套件
+brew install --cask wpsoffice
+
+# 音乐
+brew install --cask spotify
+
+# 游戏
+brew install --cask steam
 ```
 
 ---
@@ -644,49 +1000,158 @@ brew install chezmoi
 
 在 Chrome 网上应用店搜索以下插件名安装：
 
-| 插件                      | 说明                      |
-| ------------------------- | ------------------------- |
-| **Obsidian Web Clipper**  | 将网页内容保存到 Obsidian |
-| **React Developer Tools** | React 组件树查看器        |
-| **Save All Resources**    | 一键下载页面所有资源      |
-| **Copy as Markdown**      | 转为 Markdown 格式        |
-| **Star History**          | 显示 Star 增长曲线图      |
-| **Playwright MCP**        | AI 控制浏览器             |
-| **Subtle White**          | 护眼主题                  |
-| **Video Screenshot**      | 视频帧截图工具            |
+| 插件                      | 说明                                  |
+| ------------------------- | ------------------------------------- |
+| **Allow Copy +**          | 解除网站复制限制，右键菜单            |
+| **Immersive Translate**   | 沉浸式双语翻译，支持 PDF、视频字幕    |
+| **Prompt Optimizer**      | 提示词优化器，AI 辅助迭代优化         |
+| **Adblock for YouTube**   | YouTube 专门广告拦截                  |
+| **MCP-B Extension**       | Model Context Protocol，AI 控制浏览器 |
+| **Tampermonkey**          | 脚本管理器，安装自定义脚本            |
+| **SVG downloader**        | 一键下载 SVG 文件                     |
+| **Chrome Capture**        | 截图和 GIF 录制                       |
+| **AdBlock**               | 全站广告拦截                          |
+| **Vimium C**              | 全键盘操作，Vim 风格                  |
+| **Ajax Modifier**         | 修改 AJAX 响应，开发测试工具          |
+| **Link to Text Fragment** | 创建文本链接，定位到指定文本          |
+| **Obsidian Web Clipper**  | 将网页内容保存到 Obsidian             |
+| **React Developer Tools** | React 组件树查看器                    |
+| **Save All Resources**    | 一键下载页面所有资源                  |
+| **Copy as Markdown**      | 转为 Markdown 格式                    |
+| **Star History**          | 显示 Star 增长曲线图                  |
+| **Playwright MCP**        | AI 控制浏览器                         |
+| **Subtle White**          | 护眼主题                              |
+| **Video Screenshot**      | 视频帧截图工具                        |
 
 ### 7.2 VSCode 插件
 
 ```bash
-# AI 工具
+# AI & 编程助手
 code --install-extension anthropic.claude-code
 code --install-extension github.copilot
 code --install-extension github.copilot-chat
 code --install-extension rooveterinaryinc.roo-cline
 code --install-extension openai.chatgpt
 
-# 编程语言
+# 主题 & 图标
+code --install-extension akamud.vscode-theme-onelight
+code --install-extension dracula-theme.theme-dracula
+code --install-extension tonsky.theme-alabaster
+code --install-extension pkief.material-icon-theme
+
+# 开发工具
+code --install-extension chakrounanas.turbo-console-log
+code --install-extension steoates.autoimport
+code --install-extension ms-azuretools.vscode-docker
+code --install-extension ms-azuretools.vscode-containers
+code --install-extension ms-vscode-remote.remote-ssh
+code --install-extension ms-kubernetes-tools.vscode-kubernetes-tools
+code --install-extension ms-vscode-remote.remote-containers
+code --install-extension ms-vscode.makefile-tools
+
+# Git & 版本控制
+code --install-extension mhutchie.git-graph
+code --install-extension codezombiech.gitignore
+code --install-extension github.vscode-github-actions
+code --install-extension github.vscode-pull-request-github
+
+# Python & Jupyter
 code --install-extension ms-python.python
 code --install-extension ms-python.vscode-pylance
+code --install-extension ms-python.debugpy
+code --install-extension ms-toolsai.jupyter
+code --install-extension ms-toolsai.jupyter-keymap
+code --install-extension ms-toolsai.jupyter-renderers
+
+# 语言 & 框架
+code --install-extension dsznajder.es7-react-js-snippets
 code --install-extension vue.volar
+code --install-extension bierner.markdown-mermaid
+code --install-extension unifiedjs.vscode-mdx
+code --install-extension xyc.vscode-mdx-preview
+code --install-extension ecmel.vscode-html-css
+code --install-extension redhat.vscode-yaml
+code --install-extension dotjoshjohnson.xml
 code --install-extension dbaeumer.vscode-eslint
 code --install-extension esbenp.prettier-vscode
 code --install-extension bradlc.vscode-tailwindcss
 
-# 开发效率
+# 效率工具
+code --install-extension adpyke.codesnap
+code --install-extension hoovercj.vscode-power-mode
+code --install-extension bloop.vibe-kanban
+code --install-extension kaiyi.qwerty-learner
+code --install-extension vizzuhq.code-viz-stat
+code --install-extension uctakeoff.vscode-counter
+code --install-extension yzhang.markdown-all-in-one
+code --install-extension yoavbls.pretty-ts-errors
+code --install-extension tamasfe.even-better-toml
 code --install-extension eamodio.gitlens
 code --install-extension christian-kohler.npm-intellisense
 code --install-extension christian-kohler.path-intellisense
 code --install-extension mechatroner.rainbow-csv
 code --install-extension gruntfuggly.todo-tree
 code --install-extension usernamehw.errorlens
-
-# 主题图标
-code --install-extension dracula-theme.theme-dracula
-code --install-extension tonsky.theme-alabaster
-code --install-extension pkief.material-icon-theme
 code --install-extension oderwat.indent-rainbow
+
+# 终端 & SSH
+code --install-extension vscodevim.vim
+code --install-extension ms-vscode-remote.remote-ssh-edit
+
+# 其他
+code --install-extension ritwickdey.liveserver
+code --install-extension redis.redis-for-vscode
 ```
+
+### 7.3 VSCode 配置
+
+**设置 (settings.json)**：
+
+```json
+{
+  "editor.fontFamily": "JetBrainsMono Nerd Font Mono",
+  "editor.fontLigatures": true,
+  "editor.cursorBlinking": "solid",
+  "editor.cursorSmoothCaretAnimation": "on",
+  "editor.minimap.enabled": false,
+  "editor.wordWrap": "on",
+  "files.autoSave": "afterDelay",
+  "files.autoSaveDelay": 1000,
+  "editor.formatOnSave": true,
+  "workbench.iconTheme": "material-icon-theme",
+  "workbench.colorTheme": "Default Light Modern",
+  "git.autofetch": true,
+  "git.confirmSync": false,
+  "explorer.confirmDragAndDrop": false,
+  "explorer.confirmDelete": false,
+  "gitlens.ai.model": "vscode"
+}
+```
+
+**快捷键 (keybindings.json)**：
+
+```json
+[
+  {
+    "key": "ctrl+enter",
+    "command": "workbench.action.terminal.sendSequence",
+    "when": "terminalFocus",
+    "args": {
+      "text": "\u000D"
+    }
+  },
+  {
+    "key": "shift+enter",
+    "command": "workbench.action.terminal.sendSequence",
+    "when": "terminalFocus",
+    "args": {
+      "text": "\u000D"
+    }
+  }
+]
+```
+
+> **说明**：`Ctrl+Enter` 和 `Shift+Enter` 在终端中发送换行但不执行命令，适合编辑多行输入。
 
 ---
 
@@ -719,33 +1184,50 @@ brew "btop"
 brew "duf"
 brew "ncdu"
 brew "httpie"
+brew "dog"
 brew "atuin"
 brew "starship"
 brew "zsh-syntax-highlighting"
 brew "zsh-autosuggestions"
 brew "fnm"
 brew "asdf"
+brew "deno"
+brew "miniconda"
 brew "lazygit"
 brew "gh"
 brew "pgcli"
 brew "litecli"
 brew "mycli"
+brew "mole"
 brew "noti"
 brew "terminal-notifier"
 brew "fastfetch"
+brew "neofetch"
 brew "pv"
 brew "progress"
 brew "task"
 brew "timewarrior"
 brew "chezmoi"
+brew "tree"
+brew "thefuck"
 brew "ollama"
+brew "aider"
 brew "yt-dlp"
 brew "ffmpeg"
+brew "helix"
+brew "neovim"
 
 # GUI 应用
+cask "alacritty"
+cask "alt-tab"
+cask "hiddenbar"
+cask "monitorcontrol"
+cask "mos"
 cask "ghostty"
+cask "iterm2"
 cask "orbstack"
 cask "the-unarchiver"
+cask "tw93/tap/mole"
 cask "raycast"
 cask "shottr"
 cask "datagrip"
@@ -753,19 +1235,42 @@ cask "mongodb-compass"
 cask "tinyrdm"
 cask "iina"
 cask "obs"
+cask "kap"
 cask "handbrake"
 cask "downie"
 cask "skim"
+cask "qlmarkdown"
 cask "figma"
+cask "canva"
+cask "drawio"
+cask "geogebra"
+cask "cursor"
+cask "intellij-idea"
+cask "webstorm"
+cask "visual-studio-code"
+cask "sublime-text"
+cask "postman"
+cask "yaak"
+cask "bruno"
+cask "sourcetree"
+cask "switchhosts"
+cask "obsidian"
+cask "folo"
+cask "paper"
+cask "netnewswire"
+cask "wpsoffice"
 cask "spotify"
+cask "steam"
 cask "wechat"
 cask "qq"
 cask "dingtalk"
-cask "telegram"
 cask "discord"
+cask "telegram"
 cask "whatsapp"
 cask "zoom"
 cask "tencent-meeting"
+cask "tencent-lemon"
+cask "skype"
 EOF
 ```
 
@@ -807,30 +1312,37 @@ brew install tw93/tap/mole
 
 # ===== 效率工具 =====
 brew install --cask raycast shottr
+brew install --cask alacritty alt-tab hiddenbar monitorcontrol mos ghostty iterm2
 
 # ===== 媒体工具 =====
-brew install --cask iina obs handbrake downie
+brew install --cask iina obs kap handbrake downie skim qlmarkdown drawio geogebra
 
 # ===== 设计工具 =====
-brew install --cask figma
+brew install --cask figma canva
 
 # ===== 通讯工具 =====
-brew install --cask wechat qq dingtalk telegram discord whatsapp zoom tencent-meeting
+brew install --cask wechat qq dingtalk telegram discord whatsapp zoom tencent-meeting tencent-lemon skype
 
 # ===== CLI 工具 =====
 brew install git delta
 brew install bat eza fd ripgrep fzf zoxide jq jc
 brew install btop duf ncdu httpie dog atuin
 brew install zsh-syntax-highlighting zsh-autosuggestions starship
-brew install fnm asdf lazygit gh
-brew install pgcli litecli mycli helix
-brew install noti terminal-notifier fastfetch pv progress
-brew install task timewarrior chezmoi
+brew install fnm asdf deno miniconda lazygit gh
+brew install pgcli litecli mycli mole
+brew install helix neovim sublime-text
+brew install noti terminal-notifier fastfetch neofetch pv progress
+brew install task timewarrior chezmoi tree thefuck
+brew install aider
+brew install ollama yt-dlp ffmpeg
 
 # ===== 开发工具 =====
-brew install --cask ghostty orbstack
+brew install --cask cursor intellij-idea webstorm visual-studio-code
 brew install --cask datagrip mongodb-compass tinyrdm
-brew install ollama
+brew install --cask postman yaak bruno sourcetree switchhosts
+
+# ===== 笔记与工具 =====
+brew install --cask obsidian folo paper netnewswire wpsoffice spotify steam
 ```
 
 ---
@@ -852,18 +1364,26 @@ brew install git delta
 brew install bat eza fd ripgrep fzf zoxide jq jc
 brew install btop duf ncdu httpie dog atuin
 brew install zsh-syntax-highlighting zsh-autosuggestions starship
-brew install fnm asdf lazygit gh
-brew install pgcli litecli mycli helix ollama
-brew install noti terminal-notifier fastfetch pv progress
-brew install task timewarrior chezmoi
+brew install fnm asdf deno miniconda lazygit gh
+brew install pgcli litecli mycli mole
+brew install helix neovim sublime-text
+brew install noti terminal-notifier fastfetch neofetch pv progress
+brew install task timewarrior chezmoi tree thefuck
+brew install aider
+brew install ollama yt-dlp ffmpeg
 
 # GUI 应用
 echo "📦 安装 GUI 应用..."
-brew install --cask ghostty orbstack the-unarchiver raycast shottr
+brew install --cask alacritty alt-tab hiddenbar monitorcontrol mos ghostty iterm2
+brew install --cask orbstack
+brew install --cask the-unarchiver raycast shottr
 brew install --cask datagrip mongodb-compass tinyrdm
-brew install --cask iina obs handbrake downie
-brew install --cask skim figma
-brew install --cask wechat qq dingtalk telegram discord whatsapp zoom tenmonkey
+brew install --cask iina obs kap handbrake downie skim qlmarkdown drawio geogebra
+brew install --cask figma canva
+brew install --cask cursor intellij-idea webstorm visual-studio-code
+brew install --cask postman yaak bruno sourcetree switchhosts
+brew install --cask obsidian folo paper netnewswire wpsoffice spotify steam
+brew install --cask wechat qq dingtalk telegram discord whatsapp zoom tencent-meeting tencent-lemon skype
 
 # 配置 ~/.zshrc
 echo "⚙️ 配置 ~/.zshrc..."
@@ -910,9 +1430,73 @@ alias df='duf'
 alias top='btop'
 alias git='lazygit'
 alias docker='lazydocker'
+alias nv='nvim'
 EOF
 
 echo "✅ 安装完成！请重启终端或执行: source ~/.zshrc"
+
+# VS Code 扩展（可选）
+echo "🔌 安装 VS Code 扩展..."
+code --install-extension anthropic.claude-code
+code --install-extension github.copilot
+code --install-extension github.copilot-chat
+code --install-extension rooveterinaryinc.roo-cline
+code --install-extension openai.chatgpt
+code --install-extension akamud.vscode-theme-onelight
+code --install-extension dracula-theme.theme-dracula
+code --install-extension tonsky.theme-alabaster
+code --install-extension pkief.material-icon-theme
+code --install-extension chakrounanas.turbo-console-log
+code --install-extension steoates.autoimport
+code --install-extension ms-azuretools.vscode-docker
+code --install-extension ms-azuretools.vscode-containers
+code --install-extension ms-vscode-remote.remote-ssh
+code --install-extension ms-kubernetes-tools.vscode-kubernetes-tools
+code --install-extension ms-vscode-remote.remote-containers
+code --install-extension ms-vscode.makefile-tools
+code --install-extension mhutchie.git-graph
+code --install-extension codezombiech.gitignore
+code --install-extension github.vscode-github-actions
+code --install-extension github.vscode-pull-request-github
+code --install-extension ms-python.python
+code --install-extension ms-python.vscode-pylance
+code --install-extension ms-python.debugpy
+code --install-extension ms-toolsai.jupyter
+code --install-extension ms-toolsai.jupyter-keymap
+code --install-extension ms-toolsai.jupyter-renderers
+code --install-extension dsznajder.es7-react-js-snippets
+code --install-extension vue.volar
+code --install-extension bierner.markdown-mermaid
+code --install-extension unifiedjs.vscode-mdx
+code --install-extension xyc.vscode-mdx-preview
+code --install-extension ecmel.vscode-html-css
+code --install-extension redhat.vscode-yaml
+code --install-extension dotjoshjohnson.xml
+code --install-extension dbaeumer.vscode-eslint
+code --install-extension esbenp.prettier-vscode
+code --install-extension bradlc.vscode-tailwindcss
+code --install-extension adpyke.codesnap
+code --install-extension hoovercj.vscode-power-mode
+code --install-extension bloop.vibe-kanban
+code --install-extension kaiyi.qwerty-learner
+code --install-extension vizzuhq.code-viz-stat
+code --install-extension uctakeoff.vscode-counter
+code --install-extension yzhang.markdown-all-in-one
+code --install-extension yoavbls.pretty-ts-errors
+code --install-extension tamasfe.even-better-toml
+code --install-extension eamodio.gitlens
+code --install-extension christian-kohler.npm-intellisense
+code --install-extension christian-kohler.path-intellisense
+code --install-extension mechatroner.rainbow-csv
+code --install-extension gruntfuggly.todo-tree
+code --install-extension usernamehw.errorlens
+code --install-extension oderwat.indent-rainbow
+code --install-extension vscodevim.vim
+code --install-extension ms-vscode-remote.remote-ssh-edit
+code --install-extension ritwickdey.liveserver
+code --install-extension redis.redis-for-vscode
+
+echo "✅ VS Code 扩展安装完成！"
 ```
 
 ---
@@ -921,39 +1505,46 @@ echo "✅ 安装完成！请重启终端或执行: source ~/.zshrc"
 
 ### 命令行工具替代
 
-| 场景      | 原命令   | 现代替代   |
-| --------- | -------- | ---------- |
-| 查看文件  | cat      | bat        |
-| 列表目录  | ls       | eza        |
-| 树形目录  | tree     | eza --tree |
-| 查找文件  | find     | fd         |
-| 搜索内容  | grep     | ripgrep    |
-| 目录跳转  | cd       | zoxide     |
-| 进程监控  | top      | btop       |
-| 磁盘使用  | du/df    | duf        |
-| 磁盘清理  | -        | ncdu       |
-| Git 操作  | git      | lazygit    |
-| Git diff  | git diff | delta      |
-| 容器操作  | docker   | lazydocker |
-| 本地 LLM  | -        | ollama     |
-| 命令历史  | Ctrl+R   | atuin      |
-| JSON 处理 | -        | jq + jc    |
-| HTTP 请求 | curl     | httpie     |
-| DNS 查询  | dig      | dog        |
+| 场景      | 原命令   | 现代替代             |
+| --------- | -------- | -------------------- |
+| 查看文件  | cat      | bat                  |
+| 列表目录  | ls       | eza                  |
+| 树形目录  | tree     | eza --tree           |
+| 查找文件  | find     | fd                   |
+| 搜索内容  | grep     | ripgrep              |
+| 目录跳转  | cd       | zoxide               |
+| 进程监控  | top      | btop                 |
+| 磁盘使用  | du/df    | duf                  |
+| 磁盘清理  | -        | ncdu                 |
+| Git 操作  | git      | lazygit              |
+| Git diff  | git diff | delta                |
+| 容器操作  | docker   | lazydocker           |
+| 本地 LLM  | -        | ollama               |
+| 命令历史  | Ctrl+R   | atuin                |
+| JSON 处理 | -        | jq + jc              |
+| HTTP 请求 | curl     | httpie               |
+| DNS 查询  | dig      | dog                  |
+| 任务管理  | -        | task / timewarrior   |
+| 系统信息  | -        | fastfetch / neofetch |
+| 进度显示  | -        | progress / pv        |
+| 命令纠错  | -        | thefuck              |
 
 ### 常用命令速查
 
-| 功能           | 命令                     |
-| -------------- | ------------------------ |
-| 显示 Git 状态  | `eza -lah --git`         |
-| 查找文件       | `fd "name"`              |
-| 搜索代码       | `rg "pattern"`           |
-| 查看磁盘       | `duf`                    |
-| 查看进程       | `btop`                   |
-| 智能跳转       | `z foo`                  |
-| 搜索历史       | `atuin search`           |
-| 运行本地 LLM   | `ollama run llama3.2:3b` |
-| 查看已安装模型 | `ollama list`            |
+| 功能           | 命令                          |
+| -------------- | ----------------------------- |
+| 显示 Git 状态  | `eza -lah --git`              |
+| 查找文件       | `fd "name"`                   |
+| 搜索代码       | `rg "pattern"`                |
+| 查看磁盘       | `duf`                         |
+| 查看进程       | `btop`                        |
+| 智能跳转       | `z foo`                       |
+| 搜索历史       | `atuin search`                |
+| 运行本地 LLM   | `ollama run llama3.2:3b`      |
+| 查看已安装模型 | `ollama list`                 |
+| 系统信息       | `fastfetch` / `neofetch`      |
+| 进度显示       | `pv file.txt` / `progress cp` |
+| 命令纠错       | `fuck`                        |
 
 ### 快捷键速查
 
