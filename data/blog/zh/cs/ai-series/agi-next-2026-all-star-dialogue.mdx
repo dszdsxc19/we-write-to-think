@@ -1,0 +1,69 @@
+---
+title: 'AGI-Next 全明星对话速记：从 Scaling、Agent 到自学习'
+date: '2026-01-12 20:00:00'
+tags: ['ai', 'agent', 'llm', 'summit', 'clippings']
+draft: false
+summary: '基于 53AI 实录整理 AGI-Next 闭门峰会的要点，提炼唐杰、杨植麟、林俊旸、姚顺雨、张钹对 Scaling、Agent、自主学习的共识与分歧。'
+---
+
+来源：53AI 文章《独家实录｜唐杰、杨植麟、林俊旸、姚顺雨...All Star 对话上，大家聊了啥？》（https://www.53ai.com/news/LargeLanguageModel/2026011069524.html）  
+补充来源：小红书配图摘要（https://www.xiaohongshu.com/explore/696344bb000000001a021d43?app_platform=ios&app_version=9.16.1&share_from_user_hidden=true&xsec_source=app_share&type=normal&xsec_token=CB3ykaMGW4PONuoFbfN7lZpUt-Jdac7ocJp7ZY2CVdHL0=&author_share=1&xhsshare=CopyLink&shareRedId=ODZHRjo9Ozw2NzUyOTgwNjY0OTc5O0hC&apptime=1768199665&share_id=eabdadb1b84844698cd2e7d09481fb72，页面 404/需登录，未能获取，以下内容仅基于 53AI 文本）
+
+## 会议脉络
+
+- 报告：唐杰（智谱）、杨植麟（Kimi）、林俊旸（通义千问）
+- 圆桌：杨强、唐杰、林俊旸、姚顺雨（远程）
+- 点评：张钹院士
+
+## 讨论重心速览
+
+### 唐杰：Scaling 之后的泛化与 Device Use
+
+- Chat 范式已收尾，下一阶段是“让 AI 真的做事”，核心抓手：Thinking + Agentic + Coding。
+- RLVR 被视为 2025 爆发点：用可验证环境（数学、编程、Web、设备操作）生成反馈，叠加 SFT 交替训练，提升泛化并防止 RL 陷阱。
+- Device Use 路线：API + GUI 混合操作，异步长任务（如手机跨 App 40 步自动购票），通过多任务异步 RL 统一训练；发布 AutoGLM 9B 以速度优先。
+- 认清差距：开源榜单领先不等于总体超越，美国闭源大模型可能拉大差距。
+- 未来三件事：继续 Scaling 但强调智能效率；新架构解决超长上下文与知识压缩；多模态“感统”支撑长任务、具身落地。
+
+### 杨植麟：Token 效率、长上下文与“品位”
+
+- 证据表明 Transformer 在长上下文 Loss 上优于 LSTM，长程能力是 Agent 时代关键。
+- 用 MUON 二阶优化和 QK-Clip，把 Kimi K2 训练 Token 效率提升约 2x；Kimi Linear（Delta Attention）在长程任务首次超越全注意力，速度快 6-10 倍。
+- K2 已能完成 200+ 步工具调用，HLE 等评测超越 OpenAI，进入 Agent 时代。
+- 提出“模型需要 Taste（品位）”：同样的 Token 不是可互换商品，输出质感和偏好差异会成为区分度。
+
+### 林俊旸：Generalist Agent 与多模态小巨人
+
+- 从开源 1.8B 起步，强调小模型价值与多语言覆盖（119 语言+方言）；模型即产品，提供聚合式体验。
+- Coding 从“解竞赛题”转向“软件工程师”场景：SWE-bench、Terminal-Bench，配合 Agent Scaffolds（算法 + Infra）做真实环境多轮交互。
+- Qwen3 系列：Reasoning 提升（AIME 70+），长上下文到 1M+，Coder 能力并入主模型；VL 追求“智力不降”并加上视觉/视频理解与生成、Edit。
+- 下一步：Linear Context 新架构，全模态“三进三出”；多轮环境 RL 面向长任务推理；数字 Agent → 具身 Agent，混合 GUI 操作与 API 调用。
+
+### 圆桌：分化、自主学习、Agent 机遇
+
+- 分化趋势：ToC 与 ToB 体验分野；模型/应用分层 vs 垂直一体化并存。Coding 与 Agent 被视为 ToB 增长最快的切口。
+- 自主学习共识：需要可验证任务和清晰奖励；2025 已有 Cursor 等用在线数据快速迭代，未来看长任务、个性化与持续记忆。
+- Agent 展望：2026 期待周级长任务自动化；环境复杂度从电脑 GUI 走向物理世界实验；安全需同时关注“做不该做的事”。
+- 中国机会与掣肘：算力/光刻机、ToB 支付意愿、冒险文化；保持开源高效复制的同时争取范式突破。
+
+### 张钹院士点评：AGI 的五个关键能力
+
+1. **时空一致的多模态理解与落地**：不同模态时间轴要能对齐。
+2. **可控的在线学习与适应**：强化学习需可验证、可收敛。
+3. **可验证的推理与长期规划**：长链路执行必须能判对错。
+4. **可校准的反思与元认知**：反思要能回溯、校准信号。
+5. **跨任务强泛化**：尤其面对分布外、长尾任务。  
+   同时提醒治理重点在“人”，企业家需把 AI 变成像水电一样的通用能力。
+
+## 有趣观点与金句
+
+- “Scaling 可能是人类偷懒的办法，真正难的是找到更高的智能效率。”——唐杰
+- “模型的 Token 不是同质化的电力，每个模型的 Taste 会成为区分度。”——杨植麟
+- “长尾才是通用 Agent 的魅力：别人都解决不了的问题，被你解掉那一刻才像 AGI。”——林俊旸
+- “自主学习像睡眠清噪：没有可验证的信号，再多数据也可能越学越偏。”——张钹院士
+
+## 我的提炼
+
+- 共识：下一阶段的竞争在长任务 Agent、可验证 RL、自主学习与长上下文架构；Coding/Device Use 是直接落地的生产力场景。
+- 分歧：ToC 与 ToB 的优先级、垂直整合 vs 平台化、Scaling 继续拉满还是转向效率/新范式。
+- 风险/空白：评测跑分与真实体感差距、冷启动场景缺数据、长任务安全与可控性、跨模态时空对齐仍缺标准。
