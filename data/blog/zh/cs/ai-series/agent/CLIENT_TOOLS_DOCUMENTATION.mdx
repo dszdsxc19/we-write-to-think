@@ -1,0 +1,959 @@
+---
+title: '深入解析 Mastra Client Tools 架构与实现机制'
+date: 2026-01-13
+tags: ['AI', 'Mastra', 'Agent', 'Client Tools']
+lastmod: 2026-01-13
+draft: false
+summary: '全面解析 Mastra 框架中 clientTools 的工作原理，从客户端定义到服务端处理的完整流程，探讨多工具来源合并机制与 AI SDK 的协同工作方式。'
+images: []
+authors: ['default']
+layout: PostLayout
+series: 'Agent Series'
+step: 1
+---
+
+# 深入解析 Mastra Client Tools 架构与实现机制
+
+> 本文全面解析 Mastra 框架中 `clientTools` 的完整工作流程和架构设计，帮助开发者理解客户端工具系统的运作机制。
+
+## 前言
+
+在现代 AI Agent 开发中，**工具调用（Tool Calling）**是实现 Agent 与外部系统交互的核心机制。Mastra 框架通过 `clientTools` 功能，提供了一种灵活的客户端工具定义方式，使得开发者可以在浏览器端动态定义工具，并让 LLM 能够智能地调用这些工具。
+
+本文将从架构层面深入剖析 `clientTools` 的工作原理，涵盖从客户端定义、服务端处理到工具执行调用的完整流程。
+
+## 目录
+
+1. [概述](#概述)
+2. [客户端工具定义](#客户端工具定义)
+3. [clientTools 传入后的处理流程](#clienttools-传入后的处理流程)
+4. [Vercel 工具检测](#vercel-工具检测)
+5. [服务端处理逻辑](#服务端处理逻辑)
+6. [多工具来源与合并](#多工具来源与合并)
+7. [工具调用执行流程](#工具调用执行流程)
+8. [AI SDK 的角色](#ai-sdk-的角色)
+9. [自建 SDK 参考](#自建-sdk-参考)
+10. [总结](#总结)
+
+---
+
+## 概述
+
+`clientTools` 是 Mastra 客户端 SDK 的核心功能之一，它允许开发者在**客户端（浏览器）动态定义工具**，并在 Agent 调用时使用。这种设计的核心思想是：
+
+- **工具定义与执行的分离**：工具的 schema（结构化描述）发送到服务端供 LLM 理解，而工具的实际执行逻辑保留在客户端
+- **安全性与灵活性**：敏感操作（如 DOM 操作、本地 API 调用）在客户端执行，无需暴露给服务端
+- **动态性**：工具可以在运行时动态创建和传递，无需预先在服务端注册
+
+### 工作原理示意图
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  用户调用 agent.generate()                                   │
+│  - messages: "Change the background to blue"                │
+│  - clientTools: { colorChangeTool }                         │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+        工具 schema → 服务端 (供 LLM 生成工具调用)
+        工具执行 → 客户端 (实际执行逻辑)
+```
+
+---
+
+## 客户端工具定义
+
+### 文件位置
+
+`client-sdks/client-js/src/tools.ts`
+
+### 核心接口设计
+
+```typescript
+// 客户端工具执行上下文
+export interface ClientToolExecutionContext<TSchemaIn extends z.ZodSchema | undefined = undefined> {
+  context: TSchemaIn extends z.ZodSchema ? z.infer<TSchemaIn> : unknown
+}
+
+// 客户端工具动作接口
+export interface ClientToolAction<
+  TSchemaIn extends z.ZodSchema | undefined = undefined,
+  TSchemaOut extends z.ZodSchema | undefined = undefined,
+> {
+  id: string // 工具唯一标识
+  description: string // 工具描述（LLM 决定是否调用）
+  inputSchema?: TSchemaIn // 输入参数 schema
+  outputSchema?: TSchemaOut // 输出参数 schema
+  execute?: (
+    context: ClientToolExecutionContext<TSchemaIn>,
+    options?: ToolCallOptions
+  ) => Promise<TSchemaOut extends z.ZodSchema ? z.infer<TSchemaOut> : unknown>
+}
+
+// 客户端工具类
+export class ClientTool<
+  TSchemaIn extends z.ZodSchema | undefined = undefined,
+  TSchemaOut extends z.ZodSchema | undefined = undefined,
+> {
+  id: string
+  description: string
+  inputSchema?: TSchemaIn
+  outputSchema?: TSchemaOut
+  execute?: ClientToolAction<TSchemaIn, TSchemaOut>['execute']
+
+  constructor(opts: ClientToolAction<TSchemaIn, TSchemaOut>) {
+    this.id = opts.id
+    this.description = opts.description
+    this.inputSchema = opts.inputSchema
+    this.outputSchema = opts.outputSchema
+    this.execute = opts.execute
+  }
+}
+
+// 工厂函数
+export function createTool<
+  TSchemaIn extends z.ZodSchema | undefined = undefined,
+  TSchemaOut extends z.ZodSchema | undefined = undefined,
+>(opts: ClientToolAction<TSchemaIn, TSchemaOut>): ClientTool<TSchemaIn, TSchemaOut> {
+  return new ClientTool(opts)
+}
+```
+
+### 使用示例
+
+下面是一个完整的客户端工具定义和使用示例：
+
+```typescript
+import { createTool } from '@mastra/client-js'
+import { z } from 'zod'
+
+// 定义一个背景颜色切换工具
+const colorChangeTool = createTool({
+  id: 'colorChangeTool',
+  description: 'Change the background color of the page',
+  inputSchema: z.object({
+    color: z.string().describe('The color to change to (e.g., "blue", "#ff0000")'),
+  }),
+  execute: async ({ context }) => {
+    // 在客户端执行：直接操作 DOM
+    document.body.style.backgroundColor = context.color
+    return { success: true, color: context.color }
+  },
+})
+
+// 使用示例：让 LLM 决定是否调用此工具
+const response = await agent.generate({
+  messages: 'Change the background to blue',
+  clientTools: { colorChangeTool },
+})
+```
+
+**关键点解析**：
+
+- `inputSchema` 使用 Zod 定义，提供类型安全和运行时验证
+- `execute` 函数在客户端浏览器中执行，可以访问 DOM API
+- 工具的 `description` 会被发送给 LLM，帮助其决定何时调用此工具
+
+---
+
+## clientTools 传入后的处理流程
+
+当开发者在客户端调用 `agent.generate()` 并传入 `clientTools` 时，Mastra 会经过一系列精密的处理步骤。理解这一流程对于调试问题和优化性能至关重要。
+
+### 1. 客户端参数处理
+
+**文件**: `client-sdks/client-js/src/resources/agent.ts`
+
+```typescript
+async generate<OUTPUT extends OutputSchema = undefined>(
+  messagesOrParams: MessageListInput | StreamParams<OUTPUT>,
+  options?: Omit<StreamParams<OUTPUT>, 'messages'>,
+) {
+  let params: StreamParams<OUTPUT>;
+  // 处理两种调用签名
+  // ...
+
+  const processedParams = {
+    ...params,
+    requestContext: parseClientRequestContext(params.requestContext),
+    clientTools: processClientTools(params.clientTools),  // 🔑 关键处理
+    structuredOutput: params.structuredOutput
+      ? { ...params.structuredOutput, schema: zodToJsonSchema(params.structuredOutput.schema) }
+      : undefined,
+  };
+}
+```
+
+### 2. processClientTools 转换
+
+**文件**: `client-sdks/client-js/src/utils/process-client-tools.ts`
+
+```typescript
+export function processClientTools(clientTools: ToolsInput | undefined): ToolsInput | undefined {
+  if (!clientTools) return undefined
+
+  return Object.fromEntries(
+    Object.entries(clientTools).map(([key, value]) => {
+      // 检测是否是 Vercel 工具
+      if (isVercelTool(value)) {
+        return [
+          key,
+          {
+            ...value,
+            // Vercel AI SDK v4 用 parameters
+            parameters: value.parameters ? zodToJsonSchema(value.parameters) : undefined,
+          },
+        ]
+      } else {
+        return [
+          key,
+          {
+            ...value,
+            // Mastra 客户端工具用 inputSchema
+            inputSchema: value.inputSchema ? zodToJsonSchema(value.inputSchema) : undefined,
+            outputSchema: value.outputSchema ? zodToJsonSchema(value.outputSchema) : undefined,
+          },
+        ]
+      }
+    })
+  )
+}
+```
+
+**核心操作**: 将 Zod schema 转换为 JSON Schema（因为需要发送到服务器）
+
+### 3. 发送到服务器
+
+```typescript
+const response = await this.request(`/api/agents/${this.agentId}/generate`, {
+  method: 'POST',
+  body: processedParams, // 包含转换后的 clientTools
+})
+```
+
+### 4. 工具执行与递归调用
+
+**文件**: `client-sdks/client-js/src/resources/agent.ts`
+
+当服务器返回 `finishReason === 'tool-calls'` 时：
+
+```typescript
+async function executeToolCallAndRespond({
+  response,
+  params,
+  resourceId,
+  threadId,
+  requestContext,
+  respondFn,
+}) {
+  if (response.finishReason === 'tool-calls') {
+    for (const toolCall of toolCalls) {
+      const clientTool = params.clientTools?.[toolCall.payload.toolName]
+
+      if (clientTool && clientTool.execute) {
+        // 🔑 在客户端执行工具！
+        const result = await clientTool.execute(toolCall?.payload.args, {
+          requestContext,
+          tracingContext: { currentSpan: undefined },
+          agent: {
+            messages: response.messages,
+            toolCallId: toolCall?.payload.toolCallId,
+            suspend: async () => {},
+            threadId,
+            resourceId,
+          },
+        })
+
+        // 构建工具结果消息
+        const updatedMessages = [
+          ...response.response.messages,
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: toolCall.payload.toolCallId,
+                toolName: toolCall.payload.toolName,
+                result,
+              },
+            ],
+          },
+        ]
+
+        // 🔑 递归调用 generate，将结果发回服务器
+        return respondFn({
+          ...params,
+          messages: updatedMessages,
+        })
+      }
+    }
+  }
+}
+```
+
+### 完整流程图
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  用户调用 agent.generate()                                   │
+│  - messages: "Change the background to blue"                │
+│  - clientTools: { colorChangeTool }                         │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│  processClientTools()                                        │
+│  - 将 Zod schema → JSON Schema                              │
+│  - 检测 Vercel 工具 vs Mastra 工具                           │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│  POST /api/agents/:agentId/generate                          │
+│  - 发送转换后的 clientTools                                   │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│  服务器调用 LLM，LLM 返回 tool_calls                         │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│  executeToolCallAndRespond()                                 │
+│  - 从 params.clientTools 查找工具                            │
+│  - 在客户端执行 execute()                                     │
+│  - 递归调用 generate() 发送结果                              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Vercel 工具检测
+
+Mastra 框架的一个重要设计目标是兼容 Vercel AI SDK 生态。由于不同版本的 Vercel AI SDK 使用不同的字段命名规范，Mastra 实现了智能检测机制。
+
+### 为什么需要检测？
+
+Vercel AI SDK 和 Mastra 使用不同的字段名：
+
+| 类型                | 字段名        |
+| ------------------- | ------------- |
+| Vercel AI SDK v4    | `parameters`  |
+| Vercel AI SDK v5/v6 | `inputSchema` |
+| Mastra Client Tool  | `inputSchema` |
+
+### 检测逻辑
+
+**文件**: `packages/core/src/tools/toolchecks.ts`
+
+```typescript
+export function isVercelTool(tool?: ToolToConvert): tool is VercelTool {
+  return !!(
+    tool &&
+    // 不是 Mastra 的 Tool 类实例
+    !(tool instanceof Tool) &&
+    // Vercel v4 用 parameters，或 v5/v6 用 inputSchema + execute
+    ('parameters' in tool ||
+      ('execute' in tool && typeof tool.execute === 'function' && 'inputSchema' in tool))
+  )
+}
+```
+
+### 处理差异
+
+```typescript
+// Vercel 工具 → 用 parameters 字段
+if (isVercelTool(value)) {
+  return [key, { ...value, parameters: zodToJsonSchema(value.parameters) }]
+} else {
+  // Mastra 客户端工具 → 用 inputSchema 字段
+  return [key, { ...value, inputSchema: zodToJsonSchema(value.inputSchema) }]
+}
+```
+
+---
+
+## 服务端处理逻辑
+
+当 `clientTools` 被发送到服务端后，Mastra 会进行一系列处理，最终将其转换为 LLM 可以理解的工具格式。这一过程涉及到 schema 验证、字段清理和多源工具合并。
+
+### 1. Schema 定义与验证
+
+**文件**: `packages/server/src/server/schemas/agents.ts`
+
+```typescript
+export const agentExecutionBodySchema = z
+  .object({
+    messages: z.union([z.array(coreMessageSchema), z.string()]),
+    // ...
+    clientTools: z.record(z.string(), z.any()).optional(), // 🔑 保留 clientTools
+    // ...
+  })
+  .passthrough()
+```
+
+### 2. 路由处理
+
+**文件**: `packages/server/src/server/handlers/agents.ts`
+
+```typescript
+export const GENERATE_AGENT_ROUTE = createRoute({
+  method: 'POST',
+  path: '/api/agents/:agentId/generate',
+  handler: async ({ agentId, mastra, abortSignal, ...params }) => {
+    const agent = await getAgentFromSystem({ mastra, agentId })
+
+    // 🔑 关键：移除 'tools'，但保留 'clientTools'
+    sanitizeBody(params, ['tools']) // 只移除 tools，不移除 clientTools！
+
+    const { messages, ...rest } = params
+
+    const result = await agent.generate(messages, {
+      ...rest, // clientTools 在这里
+      abortSignal,
+    })
+
+    return result
+  },
+})
+```
+
+**注释说明**:
+
+```typescript
+// UI Frameworks may send "client tools" in the body,
+// but it interferes with llm providers tool handling, so we remove them
+sanitizeBody(params, ['tools'])
+```
+
+### 3. sanitizeBody 函数
+
+**文件**: `packages/server/src/server/handlers/utils.ts`
+
+```typescript
+export function sanitizeBody(body: Record<string, unknown>, disallowedKeys: string[]) {
+  for (const key of disallowedKeys) {
+    if (key in body) {
+      delete body[key] // 移除指定字段
+    }
+  }
+}
+```
+
+### 4. 工具字段对比
+
+| 字段          | 用途                     | 处理                                     |
+| ------------- | ------------------------ | ---------------------------------------- |
+| `tools`       | 服务端已配置的工具集引用 | 移除，避免与 LLM provider 的工具处理冲突 |
+| `clientTools` | 客户端动态传入的工具     | **保留**，转换成 CoreTool 供本次请求使用 |
+
+### 5. 服务端如何获取 clientTools 的 schema
+
+```
+客户端                              服务端
+  │                                   │
+  │  POST /api/agents/:agentId/generate│
+  │  {                                 │
+  │    messages: "xxx",                │
+  │    clientTools: { colorChangeTool }│ ──────────┐
+  │  }                                 │           │
+  │                                   │           ▼
+  │                          ┌─────────────────────┐
+  │                          │ sanitizeBody(params)│
+  │                          │   移除: ['tools']   │
+  │                          │   保留: clientTools │
+  │                          └─────────────────────┘
+  │                                   │
+  │                                   ▼
+  │                          agent.generate(messages, {
+  │                            clientTools,  // ✓ 传进来了
+  │                            ...
+  │                          })
+  │                                   │
+  │                                   ▼
+  │                          convertTools({ clientTools })
+  │                                   │
+  │                                   ▼
+  │                          listClientTools({ clientTools })
+  │                                   │
+  │                                   ▼
+  │                          makeCoreTool(rest, options, 'client-tool')
+  │                                   │
+  │                                   ▼
+  │                          返回 CoreTool[] 供 LLM 使用
+```
+
+---
+
+## 多工具来源与合并
+
+Mastra 的一个强大特性是支持来自多个来源的工具，并自动将它们合并后提供给 LLM。这种设计使得开发者可以灵活地在不同层面定义工具，而无需担心冲突和整合问题。
+
+### 工具来源概览
+
+| 来源                 | 列表方法              | 用途                                  |
+| -------------------- | --------------------- | ------------------------------------- |
+| **服务端配置的工具** | `listAssignedTools()` | 在 Agent 构造时传入的 `tools` 参数    |
+| **Memory 工具**      | `listMemoryTools()`   | 从 memory store 动态获取的工具        |
+| **Toolset 工具**     | `listToolsets()`      | MCP 或其他外部工具集                  |
+| **Client 工具**      | `listClientTools()`   | 客户端动态传入的工具（`clientTools`） |
+| **Sub-Agent 工具**   | `listAgentTools()`    | 其他 agent 作为工具调用               |
+| **Workflow 工具**    | `listWorkflowTools()` | 工作流作为工具                        |
+
+### 合并逻辑
+
+**文件**: `packages/core/src/agent/agent.ts`
+
+```typescript
+private async convertTools({
+  toolsets,
+  clientTools,
+  // ...
+}: {
+  toolsets?: ToolsetsInput;
+  clientTools?: ToolsInput;
+  // ...
+}): Promise<Record<string, CoreTool>> {
+  // ...
+
+  const assignedTools = await this.listAssignedTools({ /*...*/ });
+  const memoryTools = await this.listMemoryTools({ /*...*/ });
+  const toolsetTools = await this.listToolsets({ /*...*/ });
+  const clientSideTools = await this.listClientTools({ /*...*/ });
+  const agentTools = await this.listAgentTools({ /*...*/ });
+  const workflowTools = await this.listWorkflowTools({ /*...*/ });
+
+  return this.formatTools({
+    ...assignedTools,      // 服务端工具
+    ...memoryTools,        // Memory 工具
+    ...toolsetTools,       // Toolset/MCP 工具
+    ...clientSideTools,    // 客户端工具 ← 你的 colorChangeTool
+    ...agentTools,         // Sub-agent 工具
+    ...workflowTools,      // Workflow 工具
+  });
+}
+```
+
+### 冲突处理
+
+如果多个来源有同名工具会抛出错误：
+
+```typescript
+private formatTools(tools: Record<string, CoreTool>): Record<string, CoreTool> {
+  for (const key of Object.keys(tools)) {
+    // 检查工具名是否合法
+    if (tools[key] && (key.length > 63 || key.match(INVALID_CHAR_REGEX))) {
+      let newKey = key.replace(INVALID_CHAR_REGEX, '_');
+      if (!newKey[0]!.match(STARTING_CHAR_REGEX)) {
+        newKey = '_' + newKey;
+      }
+      newKey = newKey.slice(0, 63);
+    }
+
+    // 检查冲突
+    if (tools[newKey]) {
+      throw new MastraError({
+        id: 'AGENT_TOOL_NAME_COLLISION',
+        text: `Two or more tools resolve to the same name "${newKey}". Please rename one of the tools to avoid this collision.`,
+      });
+    }
+  }
+  return tools;
+}
+```
+
+---
+
+## 工具调用执行流程
+
+当 LLM 决定调用某个工具时，Mastra 通过精心设计的 workflow 来准备工具、执行调用并返回结果。这一过程涉及多个步骤，每个步骤都由专门的 workflow 组件负责。
+
+### 步骤 1: 准备工具（prepare-tools-step）
+
+**文件**: `packages/core/src/agent/workflows/prepare-stream/prepare-tools-step.ts`
+
+```typescript
+export function createPrepareToolsStep({ capabilities, options, ... }) {
+  return createStep({
+    id: 'prepare-tools-step',
+    execute: async () => {
+      const convertedTools = await capabilities.convertTools({
+        toolsets: options?.toolsets,
+        clientTools: options?.clientTools,
+        threadId,
+        resourceId,
+        runId,
+        requestContext,
+        // ...
+      });
+
+      return { convertedTools };
+    },
+  });
+}
+```
+
+### 步骤 2: 流式调用 LLM（stream-step）
+
+**文件**: `packages/core/src/agent/workflows/prepare-stream/stream-step.ts`
+
+```typescript
+export function createStreamStep({ capabilities, ... }) {
+  return createStep({
+    id: 'stream-text-step',
+    execute: async ({ inputData }) => {
+      const streamResult = capabilities.llm.stream({
+        ...validatedInputData,
+        tools: inputData.convertedTools,  // 🔑 传入合并后的工具
+        // ...
+      });
+      return streamResult;
+    },
+  });
+}
+```
+
+### 步骤 3: 执行工具调用（tool-call-step）
+
+**文件**: `packages/core/src/loop/workflows/agentic-execution/tool-call-step.ts`
+
+```typescript
+export function createToolCallStep({ tools, ... }) {
+  return createStep({
+    id: 'toolCallStep',
+    execute: async ({ inputData }) => {
+      // 根据 name 查找工具
+      const tool =
+        stepTools?.[inputData.toolName] ||
+        Object.values(stepTools || {})?.find((t: any) => t.id === inputData.toolName);
+
+      if (!tool) {
+        throw new Error(`Tool ${inputData.toolName} not found`);
+      }
+
+      // 执行工具
+      const result = await tool.execute(args, toolOptions);
+
+      return { result, ...inputData };
+    },
+  });
+}
+```
+
+### 完整流程图
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  agent.generate(messages, {                                 │
+│    tools: {...},           ← 服务端工具                      │
+│    clientTools: {...},     ← 客户端工具 (colorChangeTool)   │
+│    toolsets: {...},        ← MCP 工具                       │
+│  })                                                        │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│  convertTools()                                             │
+│  ├── listAssignedTools()   → { ...assignedTools }          │
+│  ├── listMemoryTools()     → { ...memoryTools }            │
+│  ├── listToolsets()        → { ...toolsetTools }           │
+│  ├── listClientTools()     → { ...clientSideTools }        │
+│  ├── listAgentTools()      → { ...agentTools }             │
+│  └── listWorkflowTools()   → { ...workflowTools }          │
+│                                                             │
+│  merge: { ...assignedTools, ...memoryTools, ...clientSideTools, ... }
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│  AI SDK:                                                    │
+│  1. 将 CoreTool 转换为 AI SDK Tool 格式                     │
+│  2. 发送工具描述给 LLM                                       │
+│  3. 接收 LLM 的 tool_calls                                   │
+│  4. 根据 toolName 从 tools 对象中查找并执行                 │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│  LLM 生成 tool_calls:                                       │
+│  [{ name: "colorChangeTool", args: { color: "blue" } }]     │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│  tool-call-step.ts                                          │
+│  const tool = tools["colorChangeTool"]                      │
+│  const result = await tool.execute(args, options)           │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## AI SDK 的角色
+
+### AI SDK 提供的能力
+
+| 功能           | 说明                                        |
+| -------------- | ------------------------------------------- |
+| **标准化接口** | 将各种格式的工具转换为 AI SDK 的 Tool 格式  |
+| **LLM 通信**   | 封装与 LLM API 的交互（发送工具、接收调用） |
+| **协议处理**   | 解析/生成 tool_calls JSON 格式              |
+| **流式处理**   | 处理流式响应，提取 tool_calls 事件          |
+
+### AI SDK 工具标准格式 (VercelTool)
+
+```typescript
+interface VercelTool {
+  id?: string // 工具名称
+  description?: string // 描述（LLM 决定是否调用）
+  inputSchema?: z.ZodSchema | JSONSchema7 // v5/v6 用 inputSchema
+  parameters?: z.ZodSchema | JSONSchema7 // v4 用 parameters
+  outputSchema?: z.ZodSchema | JSONSchema7 // 可选，输出参数
+  execute?: (args: any, options?: ToolCallOptions) => Promise<any> // 执行函数
+  onInputAvailable?: (options: { toolCallId; input; messages; abortSignal }) => Promise<void> // 流式输入回调
+  onOutput?: (options: { toolCallId; toolName; output; abortSignal }) => Promise<void> // 流式输出回调
+}
+```
+
+### 纯 AI SDK vs Mastra 对比
+
+| 功能           | AI SDK (纯)     | Mastra      |
+| -------------- | --------------- | ----------- |
+| 客户端工具     | ✅ 原生支持     | ✅ 支持     |
+| 服务端工具     | ❌ 需要自己桥接 | ✅ 自动合并 |
+| MCP 工具       | ❌ 需要自己处理 | ✅ 原生支持 |
+| Memory 集成    | ❌ 需要自己实现 | ✅ 自动处理 |
+| Sub-agent      | ❌ 需要自己实现 | ✅ 支持     |
+| 工具审批       | ❌ 需要自己实现 | ✅ 支持     |
+| 多工具来源合并 | ❌ 手动处理     | ✅ 自动合并 |
+
+---
+
+## 自建 SDK 参考
+
+### 整体架构
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        你的自定义 SDK                            │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌─────────────────┐      ┌─────────────────────────────────┐  │
+│  │   客户端 SDK     │      │         后端服务                 │  │
+│  │                 │      │                                 │  │
+│  │  createTool()   │───→  │  POST /api/agents/:id/generate  │  │
+│  │  agent.generate()      │                                 │  │
+│  │  clientTools: {} │      │  1. 接收 clientTools           │  │
+│  └─────────────────┘      │  2. 转换工具格式                 │  │
+│                           │  3. 调用 LLM                     │  │
+│                           │  4. 返回 tool_calls              │  │
+│                           │  5. 客户端执行工具 → 递归调用     │  │
+│                           └─────────────────────────────────┘  │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 客户端 SDK 实现
+
+```typescript
+// 客户端工具定义
+export interface ClientToolAction<
+  TSchemaIn extends z.ZodSchema | undefined = undefined,
+  TSchemaOut extends z.ZodSchema | undefined = undefined,
+> {
+  id: string;
+  description: string;
+  inputSchema?: TSchemaIn;
+  outputSchema?: TSchemaOut;
+  execute?: (
+    context: { context: z.infer<TSchemaIn> },
+    options?: ToolCallOptions,
+  ) => Promise<z.infer<TSchemaOut> | unknown>;
+}
+
+export class ClientTool<...> {
+  // ... 同 Mastra 实现
+}
+
+export function createTool<...>(opts) {
+  return new ClientTool(opts);
+}
+```
+
+### 客户端 Agent 实现
+
+```typescript
+export class YourAgent {
+  async generate(params: { messages; clientTools? }): Promise<GenerateResult> {
+    const { messages, clientTools } = params
+
+    // 首次调用 LLM
+    const result = await this.callLLM(messages, clientTools)
+
+    // 如果有工具调用，在客户端执行
+    if (result.toolCalls && result.toolCalls.length > 0) {
+      return this.executeToolCalls(result, messages, clientTools)
+    }
+
+    return result
+  }
+
+  private async callLLM(messages, clientTools) {
+    const tools = clientTools
+      ? Object.fromEntries(
+          Object.entries(clientTools).map(([key, tool]) => [
+            key,
+            {
+              id: tool.id,
+              description: tool.description,
+              inputSchema: tool.inputSchema ? zodToJsonSchema(tool.inputSchema) : undefined,
+              execute: tool.execute,
+            },
+          ])
+        )
+      : undefined
+
+    return await generateText({
+      model: this.model,
+      messages,
+      tools,
+      maxSteps: 5,
+    })
+  }
+
+  private async executeToolCalls(result, originalMessages, clientTools) {
+    const toolResults = await Promise.all(
+      result.toolCalls!.map(async (toolCall) => {
+        const clientTool = clientTools?.[toolCall.name]
+        const toolResult = await clientTool.execute(
+          { context: toolCall.args },
+          { abortSignal: new AbortController().signal }
+        )
+        return {
+          toolCallId: toolCall.toolCallId,
+          toolName: toolCall.name,
+          result: toolResult,
+        }
+      })
+    )
+
+    const messagesWithResults = [
+      ...(Array.isArray(originalMessages) ? originalMessages : []),
+      { role: 'assistant', content: result.text },
+      {
+        role: 'tool',
+        content: toolResults.map((tr) => ({
+          type: 'tool-result',
+          toolCallId: tr.toolCallId,
+          toolName: tr.toolName,
+          result: tr.result,
+        })),
+      },
+    ]
+
+    return this.callLLM(messagesWithResults, clientTools)
+  }
+}
+```
+
+### 工具执行位置对比
+
+| 方案           | 优点                     | 缺点                         |
+| -------------- | ------------------------ | ---------------------------- |
+| **客户端执行** | 安全（凭证不外泄），实时 | 需要来回通信，延迟高         |
+| **服务端执行** | 延迟低，可信环境         | 需要传输执行逻辑，有安全风险 |
+
+### 推荐架构：混合模式
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      你的 SDK 架构                           │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  客户端                                                     │
+│  ├── 轻量工具（DOM 操作、本地计算）──→ 客户端执行            │
+│  └── 敏感工具（API 调用、数据库）────→ 后端执行              │
+│                                                             │
+│  后端                                                       │
+│  ├── 接收 clientTools 的 schema                             │
+│  ├── 调用 LLM 获取 tool_calls                               │
+│  ├── 执行需要后端执行的工具                                  │
+│  └── 返回结果给客户端                                        │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 总结
+
+| 组件             | 是否必须 | 实现方式                           |
+| ---------------- | -------- | ---------------------------------- |
+| 客户端 SDK       | ✅       | `createTool()`, `agent.generate()` |
+| clientTools 格式 | ✅       | 参考 AI SDK 标准                   |
+| 后端服务         | 可选     | 纯客户端也可以                     |
+| 工具执行位置     | 设计决策 | 客户端 / 服务端 / 混合             |
+
+**核心**：遵循 AI SDK 的工具格式标准，你就能复用它的 `generateText`、`streamText` 等核心逻辑！
+
+---
+
+## 总结
+
+通过对 Mastra Client Tools 架构的深入分析，我们可以总结出以下几个关键要点：
+
+### 核心设计理念
+
+1. **关注点分离**：工具定义（schema）与工具执行（execute）的分离，使得 LLM 能够理解工具功能，同时保持执行逻辑的本地化和安全性
+
+2. **多源工具合并**：Mastra 的 `convertTools` 机制支持来自多个来源的工具（服务端工具、Memory 工具、MCP 工具、Client 工具等），并自动合并后提供给 LLM
+
+3. **兼容性优先**：通过 `isVercelTool` 检测，同时支持 Vercel AI SDK v4/v5/v6 和 Mastra 原生工具格式，降低迁移成本
+
+### 技术实现亮点
+
+- **Schema 转换**：使用 `zodToJsonSchema` 将 Zod schema 转换为 JSON Schema，实现跨平台传输
+- **递归调用模式**：客户端执行工具后，递归调用 `generate` 将结果发回服务端，实现多轮对话
+- **冲突检测**：工具名称冲突时抛出明确错误，避免运行时混淆
+
+### 最佳实践建议
+
+| 场景              | 推荐方案   | 理由                               |
+| ----------------- | ---------- | ---------------------------------- |
+| **DOM 操作**      | 客户端工具 | 需要直接访问浏览器 API             |
+| **本地计算**      | 客户端工具 | 减少网络延迟，提升响应速度         |
+| **敏感 API 调用** | 服务端工具 | 保护 API 密钥，避免暴露            |
+| **数据库操作**    | 服务端工具 | 统一权限管理，避免客户端越权       |
+| **混合场景**      | 分层设计   | 轻量操作放客户端，敏感操作放服务端 |
+
+### 未来展望
+
+Mastra 的 Client Tools 架构为 AI Agent 的客户端集成提供了一个可扩展的框架。随着 WebAssembly 和 WebGPU 等技术的发展，未来我们可以期待更多计算密集型任务也能在客户端高效执行，进一步降低服务端压力并提升用户体验。
+
+---
+
+## 关键文件索引
+
+| 功能模块                 | 文件路径                                                                 |
+| ------------------------ | ------------------------------------------------------------------------ |
+| **客户端工具定义**       | `client-sdks/client-js/src/tools.ts`                                     |
+| **客户端 Agent 实现**    | `client-sdks/client-js/src/resources/agent.ts`                           |
+| **clientTools 处理逻辑** | `client-sdks/client-js/src/utils/process-client-tools.ts`                |
+| **Vercel 工具检测**      | `packages/core/src/tools/toolchecks.ts`                                  |
+| **服务端路由处理**       | `packages/server/src/server/handlers/agents.ts`                          |
+| **工具合并核心逻辑**     | `packages/core/src/agent/agent.ts`                                       |
+| **工具准备工作流**       | `packages/core/src/agent/workflows/prepare-stream/prepare-tools-step.ts` |
+| **工具调用执行**         | `packages/core/src/loop/workflows/agentic-execution/tool-call-step.ts`   |
+
+---
+
+## 参考资源
+
+- [Mastra 官方文档](https://mastra.ai)
+- [Vercel AI SDK 文档](https://sdk.vercel.ai/docs)
+- [Zod Schema 验证库](https://zod.dev)
+
+---
+
+**作者注**：本文档基于 Mastra 框架源码分析撰写，旨在帮助开发者深入理解客户端工具系统的工作原理。如有疑问或建议，欢迎在评论区交流讨论。
+
+_文档生成时间: 2026-01-13 | 最后更新: 2026-01-13_
