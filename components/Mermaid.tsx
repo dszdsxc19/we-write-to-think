@@ -1,18 +1,10 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import mermaid from 'mermaid'
 
 interface MermaidProps {
   chart: string
 }
-
-mermaid.initialize({
-  startOnLoad: false,
-  theme: 'default',
-  securityLevel: 'loose',
-  fontFamily: 'inherit',
-})
 
 export default function Mermaid({ chart }: MermaidProps) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -22,6 +14,14 @@ export default function Mermaid({ chart }: MermaidProps) {
   useEffect(() => {
     const renderChart = async () => {
       try {
+        const mermaid = (await import('mermaid')).default
+        mermaid.initialize({
+          startOnLoad: false,
+          theme: 'default',
+          securityLevel: 'loose',
+          fontFamily: 'inherit',
+        })
+
         // Clean up the chart content - remove leading/trailing whitespace
         const cleanChart = chart.trim()
         const { svg } = await mermaid.render(id, cleanChart)
