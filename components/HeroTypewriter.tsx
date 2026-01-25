@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useMemo } from 'react'
 
 interface HeroTypewriterProps {
   descriptions: string[]
@@ -15,8 +15,12 @@ export function HeroTypewriter({ descriptions, defaultDescription }: HeroTypewri
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
-  const validDescriptions =
-    descriptions && descriptions.length > 0 ? descriptions : [defaultDescription]
+  // Memoize validDescriptions to prevent new array creation on every render when using fallback,
+  // which would cause unnecessary useEffect re-runs and animation resets.
+  const validDescriptions = useMemo(
+    () => (descriptions && descriptions.length > 0 ? descriptions : [defaultDescription]),
+    [descriptions, defaultDescription]
+  )
 
   useEffect(() => {
     const container = containerRef.current
