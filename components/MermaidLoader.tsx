@@ -1,20 +1,25 @@
 'use client'
 
 import { useEffect } from 'react'
-import mermaid from 'mermaid'
-
-mermaid.initialize({
-  startOnLoad: false,
-  theme: 'default',
-  securityLevel: 'loose',
-  fontFamily: 'inherit',
-})
 
 export default function MermaidLoader() {
   useEffect(() => {
     const renderMermaid = async () => {
       // Find all mermaid code blocks
       const mermaidPreBlocks = document.querySelectorAll('pre[class*="language-mermaid"]')
+
+      // Optimization: Lazy load mermaid only if needed
+      if (mermaidPreBlocks.length === 0) {
+        return
+      }
+
+      const mermaid = (await import('mermaid')).default
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: 'default',
+        securityLevel: 'loose',
+        fontFamily: 'inherit',
+      })
 
       for (const pre of Array.from(mermaidPreBlocks)) {
         // Skip if already rendered
