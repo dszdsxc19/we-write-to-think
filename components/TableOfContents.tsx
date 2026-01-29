@@ -52,11 +52,15 @@ export default function TableOfContents({ toc, triggerId, className }: TableOfCo
 
   // Track active heading
   useEffect(() => {
-    const handleScroll = () => {
-      const headingElements = toc
-        .map((item) => document.getElementById(item.url.slice(1)))
-        .filter(Boolean) as HTMLElement[]
+    // Optimization: Cache DOM elements to avoid repeated queries during scroll
+    const headingElements = toc
+      .map((item) => document.getElementById(item.url.slice(1)))
+      .filter(Boolean) as HTMLElement[]
 
+    const triggerElement = triggerId ? document.getElementById(triggerId) : null
+    let ticking = false
+
+    const handleScroll = () => {
       if (headingElements.length === 0) return
 
       const topOffset = 150
@@ -84,10 +88,9 @@ export default function TableOfContents({ toc, triggerId, className }: TableOfCo
         return
       }
 
-      const trigger = document.getElementById(triggerId)
-      if (!trigger) return
+      if (!triggerElement) return
 
-      const rect = trigger.getBoundingClientRect()
+      const rect = triggerElement.getBoundingClientRect()
       if (rect.bottom < 0) {
         setIsVisible(true)
       } else {
@@ -96,12 +99,21 @@ export default function TableOfContents({ toc, triggerId, className }: TableOfCo
     }
 
     const onScroll = () => {
-      handleScroll()
-      handleTrigger()
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          handleScroll()
+          handleTrigger()
+          ticking = false
+        })
+        ticking = true
+      }
     }
 
     window.addEventListener('scroll', onScroll, { passive: true })
-    onScroll()
+
+    // Initial check
+    handleScroll()
+    handleTrigger()
 
     return () => {
       window.removeEventListener('scroll', onScroll)
