@@ -95,9 +95,16 @@ export default function TableOfContents({ toc, triggerId, className }: TableOfCo
       }
     }
 
+    let ticking = false
     const onScroll = () => {
-      handleScroll()
-      handleTrigger()
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          handleScroll()
+          handleTrigger()
+          ticking = false
+        })
+        ticking = true
+      }
     }
 
     window.addEventListener('scroll', onScroll, { passive: true })
