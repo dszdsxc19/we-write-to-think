@@ -95,9 +95,17 @@ export default function TableOfContents({ toc, triggerId, className }: TableOfCo
       }
     }
 
+    // Throttling scroll event listener with requestAnimationFrame
+    let ticking = false
     const onScroll = () => {
-      handleScroll()
-      handleTrigger()
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          handleScroll()
+          handleTrigger()
+          ticking = false
+        })
+        ticking = true
+      }
     }
 
     window.addEventListener('scroll', onScroll, { passive: true })
