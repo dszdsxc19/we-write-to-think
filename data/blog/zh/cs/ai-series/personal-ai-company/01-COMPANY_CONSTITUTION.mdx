@@ -1,0 +1,137 @@
+---
+title: 一人公司章程 (One-Person Company Constitution)
+date: 2026-01-19
+tags: [AI, 创业, 个人公司, 架构]
+summary: 一人公司的最高行动纲领，凝聚了从"商业认知"到"代码落地"的所有共识。
+series: 一人公司系列
+step: 1
+authors: ['default']
+layout: PostLayout
+---
+
+这份文档将作为你（一人公司）的最高行动纲领。它凝聚了我们从"商业认知"到"代码落地"的所有共识。
+
+建议将此内容保存为 **`COMPANY_CONSTITUTION.md`** 或 **`HANDBOOK.md`**，置于你的知识库或项目根目录中，时刻提醒自己。
+
+---
+
+# 🦄 One-Person Company Constitution (OPCC)
+
+**Version 1.0 | Project: SkillVault**
+
+## 第一章：核心公理 (Core Axioms)
+
+1. **Code is Liability (代码即负债)**
+
+- 我们不生产代码，我们管理代码库存。
+- 能用 SaaS 解决的不自己写，能复用开源架构（Reference Implementation）的不自己造。
+- 目标是以最小的代码量（库存成本），交付最大的用户价值（资产增值）。
+
+2. **Product First (产品即资产)**
+
+- 技术架构服务于业务目标。
+- 不要因为“技术上很酷”而做，只因为“用户需要”或“能降低摩擦”而做。
+- 核心哲学：**Do your things, smoothly.** (顺滑交付，结果导向)。
+
+3. **Isomorphic Reconstruction (同构复刻)**
+
+- 站在巨人的肩膀上。复用成熟项目（如 Midday）的工程底座、目录结构和最佳实践。
+- 只修改 **Domain Logic (业务逻辑)**，保留 **Infrastructure (基础设施)**。
+
+---
+
+## 第二章：组织架构与角色职责 (Roles & Responsibilities)
+
+你是这家公司的 **CEO (首席执行官)**，你需要根据不同阶段，动态切换以下帽子。AI 是你的 **执行部门**。
+
+### 1. 人类侧角色 (The Human Stack)
+
+| 角色                      | 关键职责 (Key Responsibilities)                            | 介入时机             | 典型动作                                        |
+| ------------------------- | ---------------------------------------------------------- | -------------------- | ----------------------------------------------- |
+| **Founder (创始人)**      | **定方向**。决定做什么，更重要的是决定“不做什么”。         | 项目启动、里程碑复盘 | 砍需求，定 MVP 范围。                           |
+| **PM (产品经理)**         | **理需求**。将模糊想法转化为清晰的 User Story 和 UX Flow。 | 开发前               | 与 AI 对话，产出 PRD 文档。                     |
+| **Architect (架构师)**    | **定骨架**。设计数据模型，进行技术选型，审计方案可行性。   | 需求确认后，写代码前 | 设计 Schema，进行 **Design Audit** (设计审计)。 |
+| **Orchestrator (编排者)** | **分任务**。将大需求拆解为原子指令，分发给合适的 AI 模型。 | 实现阶段             | 写 Prompt，选择用 v0 还是 Cursor。              |
+| **Auditor (验收官)**      | **控质量**。不写代码，只看代码。检查安全、逻辑、规范。     | AI 产出代码后        | Code Review，驳回不合格代码。                   |
+
+### 2. AI 侧角色 (The AI Stack)
+
+| 角色                        | 对应模型/工具                   | 职责                                                                                                                                                                            |
+| --------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Chief of Staff (幕僚长)** | DeepSeek R1 / Claude 3.7 Sonnet | **旁观者视角**。审视你的编排决策，在关键节点提醒潜在风险。典型场景：PRD 写完后问"有没有漏掉边缘情况"；Schema 设计后问"这个关系是否过度设计"；任务拆解后问"是否有依赖顺序问题"。 |
+| **Consultant (顾问)**       | Claude 3.5 Sonnet / DeepSeek R1 | 扮演 PM 提问，扮演架构师进行批判性思考。                                                                                                                                        |
+| **Worker (搬运工)**         | Cursor / Copilot / Claude Code  | 执行具体的 CRUD 代码编写、重构。                                                                                                                                                |
+| **Designer (设计师)**       | v0.dev                          | 生成 UI 组件代码，处理 Tailwind 样式。                                                                                                                                          |
+
+---
+
+## 第三章：标准作业程序 (SOP: The Workflow)
+
+严禁跳过任何步骤。**慢即是快**。
+
+### Phase 1: Discovery & Definition (定义)
+
+- **Trigger**: Founder 提出一个新想法。
+- **Action**: 启动 PM 模式。与 AI 对话（使用 `ai-pm` 分身）。
+- **Checklist**:
+- [ ] 明确用户是谁？
+- [ ] 明确核心痛点是什么？
+- [ ] 明确交互流程 (UX Flow)？
+
+- **Output**: 更新 `docs/PRD.md` 和 `.ai/product-manifesto.md`。
+
+### Phase 2: Design & Audit (设计)
+
+- **Trigger**: PRD 定稿。
+- **Action**: 启动 Architect 模式。让 AI 基于 UX Flow 设计/修改数据库 Schema。
+- **Critical Step (关键步骤)**: **Human Audit**。
+- 预演流程：是否存在认知摩擦？（如 Goal Locking 问题）
+- 审计架构：是否引入了不必要的复杂度？（如复用过重的 Transaction 表）
+
+- **Output**: 冻结的 `schema.prisma` 设计稿。
+
+### Phase 3: Implementation (实现)
+
+- **Trigger**: Schema 冻结。
+- **Action**: 启动 Orchestrator 模式。拆解任务为原子粒度。
+
+1. **Infrastructure**: 执行数据库迁移 (`pnpm db:push`)。
+2. **Backend**: 编写 Server Action (Zod 验证 -> DB 写入)。
+3. **Frontend**: 使用 v0 生成组件 -> 集成到页面。
+
+- **Rule**: 使用 **Ubiquitous Language (通用语言)** 指挥 AI。
+
+### Phase 4: Verification (验收)
+
+- **Trigger**: 代码生成完毕。
+- **Action**: 启动 Auditor 模式。
+- **Checklist**:
+- [ ] **Security**: 鉴权了吗？(User ID check)
+- [ ] **Safety**: 错误处理了吗？(Try-catch)
+- [ ] **Clean**: 变量名符合通用语言吗？
+
+- **Output**: Git Commit & Push。
+
+---
+
+## 第四章：沟通与交互协议 (Protocols)
+
+### 1. 通用语言 (Ubiquitous Language)
+
+在 `CLAUDE.md` 中维护字典。确保人与 AI 对术语的理解绝对一致。
+
+- _SkillVault 示例_: `Output` (产出), `Inbox` (收件箱), `Capture` (录入)。
+
+### 2. 绝不将就协议 (No-Compromise Policy)
+
+为了防止 AI 降智，必须在 System Prompt 中强制执行：
+
+- **Assume Expertise**: 默认我是专家，不要解释基础概念。
+- **Challenge Me**: 如果我的指令会导致烂代码，必须拒绝并给出理由。
+- **State-of-the-Art**: 永远提供行业最高标准方案。
+
+### 3. 文档驱动 (Doc-Driven)
+
+- **`.ai/product-manifesto.md`**: 产品的唯一真理来源 (Source of Truth)。
+- **`.cursorrules`**: 编辑器的行为准则。
+- **Git**: 所有的规则变更，必须通过 Git 沉淀。
