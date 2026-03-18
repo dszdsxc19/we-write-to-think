@@ -171,11 +171,22 @@ deprecated: true
 ## 开发命令
 
 ```bash
+bun run export:vault  # 从 obsidian-base/40 Outputs 导出博客内容
 bun dev              # 开发服务器
 bun run build        # 生产构建
 bun run start        # 启动生产服务器
 bun run lint         # 代码检查
 ```
+
+## Vault 发布链路
+
+博客仓库不再手工维护 `data/blog/zh` 的原始内容。新的发布流程是：
+
+1. 在 `../obsidian-base/40 Outputs` 中维护笔记
+2. 仅导出 frontmatter 中 `publish: blog` 的笔记
+3. 运行 `bun run export:vault` 生成 `data/blog/zh/**/*.mdx`
+
+首次导出会把旧的 `data/blog/zh` 归档到 `data/blog/_legacy/`，然后写入新的导出产物。
 
 ## Vercel 部署管理
 

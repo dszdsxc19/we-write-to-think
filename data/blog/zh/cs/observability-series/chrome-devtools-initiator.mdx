@@ -1,9 +1,13 @@
 ---
-title: '利用 Chrome DevTools Network Initiator 定位请求源头'
+title: 利用 Chrome DevTools Network Initiator 定位请求源头
 date: '2025-10-17'
-tags: ['Chrome DevTools', '前端调试', 'Network']
-summary: '借助 Network 面板中的 Initiator 视图，把一次偶然的抓包，变成可控的调试入口。'
+tags:
+  - Chrome DevTools
+  - 前端调试
+  - Network
+summary: 借助 Network 面板中的 Initiator 视图，把一次偶然的抓包，变成可控的调试入口。
 draft: false
+layout: PostLayout
 ---
 
 今天在办公室看见同事在 Network 面板里盯着某个请求，眼睛一亮，直接点进 “Initiator” 一列跳到源码，几秒钟之后就把断点设好了。我顺着他的操作走了一遍，才发现 Chrome DevTools 80 开始加的 Initiator 视图，其实是一把极好用的刮骨刀。

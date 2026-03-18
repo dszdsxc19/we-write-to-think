@@ -5,6 +5,7 @@
   "scripts": {
     "start": "bun run --bun next dev",
     "dev": "rm -rf .contentlayer .next && bun run --bun cross-env INIT_CWD=$PWD next dev",
+    "export:vault": "node ./scripts/export-vault-posts.mjs",
     "build": "bun run --bun cross-env INIT_CWD=$PWD next build && cross-env NODE_OPTIONS='--experimental-json-modules' node ./scripts/postbuild.mjs",
     "serve": "bun run --bun next start",
     "analyze": "bun run --bun cross-env ANALYZE=true next build",
