@@ -95,16 +95,27 @@ export default function TableOfContents({ toc, triggerId, className }: TableOfCo
       }
     }
 
+    let rafId: number | null = null
+
     const onScroll = () => {
-      handleScroll()
-      handleTrigger()
+      if (rafId) return
+      rafId = window.requestAnimationFrame(() => {
+        handleScroll()
+        handleTrigger()
+        rafId = null
+      })
     }
 
     window.addEventListener('scroll', onScroll, { passive: true })
-    onScroll()
+    // Initial check
+    handleScroll()
+    handleTrigger()
 
     return () => {
       window.removeEventListener('scroll', onScroll)
+      if (rafId) {
+        window.cancelAnimationFrame(rafId)
+      }
     }
   }, [toc, triggerId])
 
