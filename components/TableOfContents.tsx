@@ -28,6 +28,7 @@ export default function TableOfContents({ toc, triggerId, className }: TableOfCo
   const [isHovered, setIsHovered] = useState(false)
   const listRef = useRef<HTMLDivElement>(null)
   const activeItemRef = useRef<HTMLLIElement>(null)
+  const headingElementsRef = useRef<HTMLElement[]>([])
 
   // 计算应该显示的TOC项（hover时显示全部，未hover时只显示active项附近）
   const visibleToc = useMemo(() => {
@@ -50,13 +51,21 @@ export default function TableOfContents({ toc, triggerId, className }: TableOfCo
     return toc.slice(start, end)
   }, [toc, activeId, isHovered])
 
+  // Cache heading elements when toc changes
+  useEffect(() => {
+    if (toc.length === 0) return
+    headingElementsRef.current = toc
+      .map((item) => document.getElementById(item.url.slice(1)))
+      .filter(Boolean) as HTMLElement[]
+  }, [toc])
+
   // Track active heading
   useEffect(() => {
-    const handleScroll = () => {
-      const headingElements = toc
-        .map((item) => document.getElementById(item.url.slice(1)))
-        .filter(Boolean) as HTMLElement[]
+    let ticking = false
+    const triggerElement = triggerId ? document.getElementById(triggerId) : null
 
+    const handleScroll = () => {
+      const headingElements = headingElementsRef.current
       if (headingElements.length === 0) return
 
       const topOffset = 150
@@ -84,10 +93,9 @@ export default function TableOfContents({ toc, triggerId, className }: TableOfCo
         return
       }
 
-      const trigger = document.getElementById(triggerId)
-      if (!trigger) return
+      if (!triggerElement) return
 
-      const rect = trigger.getBoundingClientRect()
+      const rect = triggerElement.getBoundingClientRect()
       if (rect.bottom < 0) {
         setIsVisible(true)
       } else {
@@ -96,8 +104,14 @@ export default function TableOfContents({ toc, triggerId, className }: TableOfCo
     }
 
     const onScroll = () => {
-      handleScroll()
-      handleTrigger()
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          handleScroll()
+          handleTrigger()
+          ticking = false
+        })
+        ticking = true
+      }
     }
 
     window.addEventListener('scroll', onScroll, { passive: true })
