@@ -1,12 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef, useMemo } from 'react'
-import { clsx, type ClassValue } from 'clsx'
-import { twMerge } from 'tailwind-merge'
-
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
-}
+import { cn } from '@/lib/utils'
 
 interface TocItem {
   value: string
@@ -29,6 +24,10 @@ export default function TableOfContents({ toc, triggerId, className }: TableOfCo
   const listRef = useRef<HTMLDivElement>(null)
   const activeItemRef = useRef<HTMLLIElement>(null)
 
+  // Cache DOM elements to avoid repeatedly querying them on scroll
+  const headingElementsRef = useRef<HTMLElement[]>([])
+  const triggerElementRef = useRef<HTMLElement | null>(null)
+
   // 计算应该显示的TOC项（hover时显示全部，未hover时只显示active项附近）
   const visibleToc = useMemo(() => {
     if (toc.length === 0) return []
@@ -50,13 +49,23 @@ export default function TableOfContents({ toc, triggerId, className }: TableOfCo
     return toc.slice(start, end)
   }, [toc, activeId, isHovered])
 
+  // Update cached DOM elements when toc or triggerId changes
+  useEffect(() => {
+    headingElementsRef.current = toc
+      .map((item) => document.getElementById(item.url.slice(1)))
+      .filter(Boolean) as HTMLElement[]
+
+    if (triggerId) {
+      triggerElementRef.current = document.getElementById(triggerId)
+    } else {
+      triggerElementRef.current = null
+    }
+  }, [toc, triggerId])
+
   // Track active heading
   useEffect(() => {
     const handleScroll = () => {
-      const headingElements = toc
-        .map((item) => document.getElementById(item.url.slice(1)))
-        .filter(Boolean) as HTMLElement[]
-
+      const headingElements = headingElementsRef.current
       if (headingElements.length === 0) return
 
       const topOffset = 150
@@ -84,7 +93,13 @@ export default function TableOfContents({ toc, triggerId, className }: TableOfCo
         return
       }
 
-      const trigger = document.getElementById(triggerId)
+      let trigger = triggerElementRef.current
+      if (!trigger) {
+         // try to find it again if ref is null (safety fallback)
+         trigger = document.getElementById(triggerId)
+         triggerElementRef.current = trigger
+      }
+
       if (!trigger) return
 
       const rect = trigger.getBoundingClientRect()
@@ -95,13 +110,22 @@ export default function TableOfContents({ toc, triggerId, className }: TableOfCo
       }
     }
 
+    let ticking = false
     const onScroll = () => {
-      handleScroll()
-      handleTrigger()
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          handleScroll()
+          handleTrigger()
+          ticking = false
+        })
+        ticking = true
+      }
     }
 
     window.addEventListener('scroll', onScroll, { passive: true })
-    onScroll()
+    // Initial check
+    handleScroll()
+    handleTrigger()
 
     return () => {
       window.removeEventListener('scroll', onScroll)
