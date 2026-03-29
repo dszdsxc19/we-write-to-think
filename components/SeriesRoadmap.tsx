@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Link } from '@/navigation'
 import type { Blog } from 'contentlayer/generated'
@@ -20,9 +20,11 @@ export default function SeriesRoadmap({ series, currentPostSlug, posts }: Series
   const containerRef = useRef<HTMLDivElement>(null)
 
   // Filter and sort posts for the series
-  const seriesPosts = posts
-    .filter((post) => post.series === series)
-    .sort((a, b) => (a.step || 0) - (b.step || 0))
+  const seriesPosts = useMemo(
+    () =>
+      posts.filter((post) => post.series === series).sort((a, b) => (a.step || 0) - (b.step || 0)),
+    [posts, series]
+  )
 
   const toggleOpen = () => setIsOpen(!isOpen)
 
@@ -44,10 +46,10 @@ export default function SeriesRoadmap({ series, currentPostSlug, posts }: Series
   const CENTER_Y = SVG_HEIGHT / 2
 
   // Generate Path for the Beam
-  const generatePath = () => {
+  const path = useMemo(() => {
     if (seriesPosts.length < 2) return ''
 
-    let path = `M ${START_PADDING + HALF_NODE} ${CENTER_Y + -AMPLITUDE}`
+    let p = `M ${START_PADDING + HALF_NODE} ${CENTER_Y + -AMPLITUDE}`
 
     for (let i = 0; i < seriesPosts.length - 1; i++) {
       const startX = START_PADDING + i * NODE_WIDTH + HALF_NODE
@@ -61,10 +63,10 @@ export default function SeriesRoadmap({ series, currentPostSlug, posts }: Series
       const cp2X = endX - NODE_WIDTH / 2
       const cp2Y = endY
 
-      path += ` C ${cp1X} ${cp1Y}, ${cp2X} ${cp2Y}, ${endX} ${endY}`
+      p += ` C ${cp1X} ${cp1Y}, ${cp2X} ${cp2Y}, ${endX} ${endY}`
     }
-    return path
-  }
+    return p
+  }, [seriesPosts, START_PADDING, HALF_NODE, CENTER_Y, NODE_WIDTH, AMPLITUDE])
 
   return (
     <>
@@ -133,7 +135,7 @@ export default function SeriesRoadmap({ series, currentPostSlug, posts }: Series
                 >
                   {/* Background Path (Static dim line) */}
                   <path
-                    d={generatePath()}
+                    d={path}
                     fill="none"
                     className="stroke-gray-300/50 dark:stroke-gray-700/50"
                     strokeWidth="3"
@@ -142,7 +144,7 @@ export default function SeriesRoadmap({ series, currentPostSlug, posts }: Series
 
                   {/* Animated Glowing Path */}
                   <motion.path
-                    d={generatePath()}
+                    d={path}
                     fill="none"
                     stroke="url(#beam-gradient)"
                     strokeWidth="4"
