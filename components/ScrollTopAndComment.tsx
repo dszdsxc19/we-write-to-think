@@ -9,13 +9,26 @@ const ScrollTopAndComment = () => {
   const [show, setShow] = useState(false)
 
   useEffect(() => {
+    let ticking = false
+    let rafId: number | null = null
+
+    // Optimized scroll handler using requestAnimationFrame
     const handleWindowScroll = () => {
-      if (window.scrollY > 50) setShow(true)
-      else setShow(false)
+      if (!ticking) {
+        rafId = window.requestAnimationFrame(() => {
+          if (window.scrollY > 50) setShow(true)
+          else setShow(false)
+          ticking = false
+        })
+        ticking = true
+      }
     }
 
     window.addEventListener('scroll', handleWindowScroll)
-    return () => window.removeEventListener('scroll', handleWindowScroll)
+    return () => {
+      window.removeEventListener('scroll', handleWindowScroll)
+      if (rafId) window.cancelAnimationFrame(rafId)
+    }
   }, [])
 
   const handleScrollTop = () => {

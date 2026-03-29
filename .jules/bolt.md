@@ -1,0 +1,3 @@
+## 2024-05-23 - Playwright Event Flakiness
+**Learning:** Playwright's `page.evaluate("window.scrollTo(...)")` combined with `page.mouse.wheel(...)` in a headless environment may not reliably trigger standard `window` scroll events in Next.js apps using certain layouts, even when `window.scrollY` updates correctly.
+**Action:** When verifying scroll logic, if events fail to trigger but state/layout updates are verified, rely on unit-testing logic or verifying the visual outcome of the state change by forcing the state, rather than spending excessive time debugging the event trigger mechanism in the test harness.
