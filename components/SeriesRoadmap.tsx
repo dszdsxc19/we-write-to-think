@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Link } from '@/navigation'
 import type { Blog } from 'contentlayer/generated'
 import { CoreContent } from 'pliny/utils/contentlayer'
-import { X, BookOpen, Clock, Calendar } from 'lucide-react'
+import { X, BookOpen, Clock } from 'lucide-react'
 import { twMerge } from 'tailwind-merge'
 import { disableBodyScroll, enableBodyScroll, clearAllBodyScrollLocks } from 'body-scroll-lock'
 
@@ -15,14 +15,26 @@ interface SeriesRoadmapProps {
   posts: CoreContent<Blog>[]
 }
 
+// OPTIMIZATION: Move constants outside component to prevent re-creation on every render
+// Dimensions & Layout
+const NODE_WIDTH = 360
+const START_PADDING = 180
+const HALF_NODE = NODE_WIDTH / 2
+const AMPLITUDE = 120 // Increased amplitude for card spacing
+const SVG_HEIGHT = AMPLITUDE * 2 + 200
+const CENTER_Y = SVG_HEIGHT / 2
+
 export default function SeriesRoadmap({ series, currentPostSlug, posts }: SeriesRoadmapProps) {
   const [isOpen, setIsOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
 
-  // Filter and sort posts for the series
-  const seriesPosts = posts
-    .filter((post) => post.series === series)
-    .sort((a, b) => (a.step || 0) - (b.step || 0))
+  // OPTIMIZATION: Memoize filtering and sorting to avoid O(n*log(n)) operations on every render
+  // This is especially important as `posts` can be large
+  const seriesPosts = useMemo(() => {
+    return posts
+      .filter((post) => post.series === series)
+      .sort((a, b) => (a.step || 0) - (b.step || 0))
+  }, [posts, series])
 
   const toggleOpen = () => setIsOpen(!isOpen)
 
@@ -35,16 +47,9 @@ export default function SeriesRoadmap({ series, currentPostSlug, posts }: Series
     return () => clearAllBodyScrollLocks()
   }, [isOpen])
 
-  // Dimensions & Layout
-  const NODE_WIDTH = 360
-  const START_PADDING = 180
-  const HALF_NODE = NODE_WIDTH / 2
-  const AMPLITUDE = 120 // Increased amplitude for card spacing
-  const SVG_HEIGHT = AMPLITUDE * 2 + 200
-  const CENTER_Y = SVG_HEIGHT / 2
-
-  // Generate Path for the Beam
-  const generatePath = () => {
+  // OPTIMIZATION: Memoize expensive string concatenation for SVG path
+  // Prevents recalculation when `isOpen` toggles or other unrelated state changes
+  const pathD = useMemo(() => {
     if (seriesPosts.length < 2) return ''
 
     let path = `M ${START_PADDING + HALF_NODE} ${CENTER_Y + -AMPLITUDE}`
@@ -64,7 +69,7 @@ export default function SeriesRoadmap({ series, currentPostSlug, posts }: Series
       path += ` C ${cp1X} ${cp1Y}, ${cp2X} ${cp2Y}, ${endX} ${endY}`
     }
     return path
-  }
+  }, [seriesPosts])
 
   return (
     <>
@@ -133,7 +138,7 @@ export default function SeriesRoadmap({ series, currentPostSlug, posts }: Series
                 >
                   {/* Background Path (Static dim line) */}
                   <path
-                    d={generatePath()}
+                    d={pathD}
                     fill="none"
                     className="stroke-gray-300/50 dark:stroke-gray-700/50"
                     strokeWidth="3"
@@ -142,7 +147,7 @@ export default function SeriesRoadmap({ series, currentPostSlug, posts }: Series
 
                   {/* Animated Glowing Path */}
                   <motion.path
-                    d={generatePath()}
+                    d={pathD}
                     fill="none"
                     stroke="url(#beam-gradient)"
                     strokeWidth="4"
